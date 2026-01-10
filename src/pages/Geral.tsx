@@ -162,63 +162,123 @@ export function Geral() {
             </div>
           </div>
 
-          <div className="row" style={{ marginTop: 12 }}>
-            <div className="card" style={{ flex: "1 1 260px" }}>
-              <div className="small">Mais rebuy/add-on</div>
-              <div className="kpi">{stats.maisRebuys?.nome ?? "-"}</div>
-              <div className="small">{(stats.maisRebuys?.rebuy_total ?? 0) + (stats.maisRebuys?.addon_total ?? 0)} ações</div>
-            </div>
-
-            <div className="card" style={{ flex: "1 1 260px" }}>
-              <div className="small">Mais participações</div>
-              <div className="kpi">{stats.maisPart?.nome ?? "-"}</div>
-              <div className="small">{stats.maisPart?.participacoes ?? 0} participações</div>
-            </div>
-
-            <div className="card" style={{ flex: "1 1 260px" }}>
-              <div className="small">Mais pódios</div>
-              <div className="kpi">{stats.maisPodios?.nome ?? "-"}</div>
-              <div className="small">{stats.maisPodios?.podios ?? 0} pódios</div>
-            </div>
-
-            <div className="card" style={{ flex: "1 1 260px" }}>
-              <div className="small">Mais títulos (P1)</div>
-              <div className="kpi">{stats.maisTitulos?.nome ?? "-"}</div>
-              <div className="small">{stats.maisTitulos?.p1 ?? 0} títulos</div>
-            </div>
-
-            <div className="card" style={{ flex: "1 1 260px" }}>
-              <div className="small">Mais melhor-mão</div>
-              <div className="kpi">{stats.maisMelhorMao?.nome ?? "-"}</div>
-              <div className="small">{stats.maisMelhorMao?.melhor_mao ?? 0} vezes</div>
-            </div>
-
-            <div className="card" style={{ flex: "1 1 260px" }}>
-              <div className="small">Maior taxa de vitória</div>
-              <div className="kpi">{stats.melhorTaxaVitoria?.nome ?? "-"}</div>
-              <div className="small">
-                {formatPct(stats.melhorTaxaVitoria ? (stats.melhorTaxaVitoria.p1 / Math.max(1, stats.melhorTaxaVitoria.participacoes)) : 0)}
+          <div className="statsWrap" style={{ marginTop: 12 }}>
+            <div className="row statsDesktop">
+              <div className="card" style={{ flex: "1 1 260px" }}>
+                <div className="small">Mais rebuy/add-on</div>
+                <div className="kpi">{stats.maisRebuys?.nome ?? "-"}</div>
+                <div className="small">{(stats.maisRebuys?.rebuy_total ?? 0) + (stats.maisRebuys?.addon_total ?? 0)} ações</div>
+              </div>
+  
+              <div className="card" style={{ flex: "1 1 260px" }}>
+                <div className="small">Mais participações</div>
+                <div className="kpi">{stats.maisPart?.nome ?? "-"}</div>
+                <div className="small">{stats.maisPart?.participacoes ?? 0} participações</div>
+              </div>
+  
+              <div className="card" style={{ flex: "1 1 260px" }}>
+                <div className="small">Mais pódios</div>
+                <div className="kpi">{stats.maisPodios?.nome ?? "-"}</div>
+                <div className="small">{stats.maisPodios?.podios ?? 0} pódios</div>
+              </div>
+  
+              <div className="card" style={{ flex: "1 1 260px" }}>
+                <div className="small">Mais títulos (P1)</div>
+                <div className="kpi">{stats.maisTitulos?.nome ?? "-"}</div>
+                <div className="small">{stats.maisTitulos?.p1 ?? 0} títulos</div>
+              </div>
+  
+              <div className="card" style={{ flex: "1 1 260px" }}>
+                <div className="small">Mais melhor-mão</div>
+                <div className="kpi">{stats.maisMelhorMao?.nome ?? "-"}</div>
+                <div className="small">{stats.maisMelhorMao?.melhor_mao ?? 0} vezes</div>
+              </div>
+  
+              <div className="card" style={{ flex: "1 1 260px" }}>
+                <div className="small">Maior taxa de vitória</div>
+                <div className="kpi">{stats.melhorTaxaVitoria?.nome ?? "-"}</div>
+                <div className="small">
+                  {formatPct(stats.melhorTaxaVitoria ? (stats.melhorTaxaVitoria.p1 / Math.max(1, stats.melhorTaxaVitoria.participacoes)) : 0)}
+                </div>
+              </div>
+  
+              <div className="card" style={{ flex: "1 1 260px" }}>
+                <div className="small">Maior taxa de pódio</div>
+                <div className="kpi">{stats.melhorTaxaPodio?.nome ?? "-"}</div>
+                <div className="small">
+                  {formatPct(stats.melhorTaxaPodio ? (stats.melhorTaxaPodio.podios / Math.max(1, stats.melhorTaxaPodio.participacoes)) : 0)}
+                </div>
+              </div>
+  
+              {/* ✅ novo card */}
+              <div className="card" style={{ flex: "1 1 260px" }}>
+                <div className="small">Melhor aproveitamento (pontos/part.)</div>
+                <div className="kpi">{stats.melhorAproveitamento?.nome ?? "-"}</div>
+                <div className="small">
+                  {stats.melhorAproveitamento
+                    ? (stats.melhorAproveitamento.pontos / Math.max(1, stats.melhorAproveitamento.participacoes)).toFixed(2)
+                    : "0.00"}
+                </div>
               </div>
             </div>
-
-            <div className="card" style={{ flex: "1 1 260px" }}>
-              <div className="small">Maior taxa de pódio</div>
-              <div className="kpi">{stats.melhorTaxaPodio?.nome ?? "-"}</div>
-              <div className="small">
-                {formatPct(stats.melhorTaxaPodio ? (stats.melhorTaxaPodio.podios / Math.max(1, stats.melhorTaxaPodio.participacoes)) : 0)}
+            <div className="hScroll statsMobile">  
+              <div className="card" style={{ flex: "1 1 260px" }}>
+                <div className="small">Mais rebuy/add-on</div>
+                <div className="kpi">{stats.maisRebuys?.nome ?? "-"}</div>
+                <div className="small">{(stats.maisRebuys?.rebuy_total ?? 0) + (stats.maisRebuys?.addon_total ?? 0)} ações</div>
               </div>
-            </div>
-
-            {/* ✅ novo card */}
-            <div className="card" style={{ flex: "1 1 260px" }}>
-              <div className="small">Melhor aproveitamento (pontos/part.)</div>
-              <div className="kpi">{stats.melhorAproveitamento?.nome ?? "-"}</div>
-              <div className="small">
-                {stats.melhorAproveitamento
-                  ? (stats.melhorAproveitamento.pontos / Math.max(1, stats.melhorAproveitamento.participacoes)).toFixed(2)
-                  : "0.00"}
+  
+              <div className="card" style={{ flex: "1 1 260px" }}>
+                <div className="small">Mais participações</div>
+                <div className="kpi">{stats.maisPart?.nome ?? "-"}</div>
+                <div className="small">{stats.maisPart?.participacoes ?? 0} participações</div>
               </div>
-            </div>
+  
+              <div className="card" style={{ flex: "1 1 260px" }}>
+                <div className="small">Mais pódios</div>
+                <div className="kpi">{stats.maisPodios?.nome ?? "-"}</div>
+                <div className="small">{stats.maisPodios?.podios ?? 0} pódios</div>
+              </div>
+  
+              <div className="card" style={{ flex: "1 1 260px" }}>
+                <div className="small">Mais títulos (P1)</div>
+                <div className="kpi">{stats.maisTitulos?.nome ?? "-"}</div>
+                <div className="small">{stats.maisTitulos?.p1 ?? 0} títulos</div>
+              </div>
+  
+              <div className="card" style={{ flex: "1 1 260px" }}>
+                <div className="small">Mais melhor-mão</div>
+                <div className="kpi">{stats.maisMelhorMao?.nome ?? "-"}</div>
+                <div className="small">{stats.maisMelhorMao?.melhor_mao ?? 0} vezes</div>
+              </div>
+  
+              <div className="card" style={{ flex: "1 1 260px" }}>
+                <div className="small">Maior taxa de vitória</div>
+                <div className="kpi">{stats.melhorTaxaVitoria?.nome ?? "-"}</div>
+                <div className="small">
+                  {formatPct(stats.melhorTaxaVitoria ? (stats.melhorTaxaVitoria.p1 / Math.max(1, stats.melhorTaxaVitoria.participacoes)) : 0)}
+                </div>
+              </div>
+  
+              <div className="card" style={{ flex: "1 1 260px" }}>
+                <div className="small">Maior taxa de pódio</div>
+                <div className="kpi">{stats.melhorTaxaPodio?.nome ?? "-"}</div>
+                <div className="small">
+                  {formatPct(stats.melhorTaxaPodio ? (stats.melhorTaxaPodio.podios / Math.max(1, stats.melhorTaxaPodio.participacoes)) : 0)}
+                </div>
+              </div>
+  
+              {/* ✅ novo card */}
+              <div className="card" style={{ flex: "1 1 260px" }}>
+                <div className="small">Melhor aproveitamento (pontos/part.)</div>
+                <div className="kpi">{stats.melhorAproveitamento?.nome ?? "-"}</div>
+                <div className="small">
+                  {stats.melhorAproveitamento
+                    ? (stats.melhorAproveitamento.pontos / Math.max(1, stats.melhorAproveitamento.participacoes)).toFixed(2)
+                    : "0.00"}
+                </div>
+              </div>
+              
           </div>
 
           <div style={{ marginTop: 12 }}>

@@ -596,3 +596,9 @@ tr:hover td{background: rgba(124,92,255,.06);}
 @media (max-width: 720px){
   .carouselArrow{ display:none; }
 }
+
+.podiumMobileOnly{ display:none; }
+@media (max-width: 720px){
+  .podiumShowcase, .podiumMinorRow{ display:none; }
+  .podiumMobileOnly{ display:block; }
+}

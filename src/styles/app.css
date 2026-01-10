@@ -518,3 +518,10 @@ tr:hover td{background: rgba(124,92,255,.06);}
   .tableWrap{ display:none; }
   .rankMobileList{ display:flex; flex-direction:column; }
 }
+
+.statsMobile{ display:none; }
+@media (max-width:720px){
+  .statsDesktop{ display:none; }
+  .statsMobile{ display:flex; }
+  .statsMobile .card{ width: 78vw; }
+}

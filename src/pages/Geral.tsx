@@ -234,10 +234,6 @@ export function Geral() {
                 </div>,
               ]}
             </Carousel>
-          
-            <div className="small" style={{ marginTop: 10 }}>
-              No mobile, arraste para o lado. No desktop, use as setas.
-            </div>
           </div>
 
 

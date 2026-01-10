@@ -39,8 +39,58 @@ export function RankingTable({ rows, onPlayerClickTo, hideEliminado, mobileDetai
   return (
     <div className="card">
       <h3 className="cardTitle">Ranking</h3>
-
+    
+      {/* MOBILE: lista de cards (evita barra lateral) */}
+      {mobileDetails && (
+        <div className="rankMobileList">
+          {filtered.map((r, idx) => {
+            const pos = idx + 1;
+            const rowClass = [
+              pos === 1 ? "podiumGold" : "",
+              pos === 2 ? "podiumSilver" : "",
+              pos === 3 ? "podiumBronze" : "",
+              (r.eliminado || r.id_jogador === "J055") ? "eliminado" : ""
+            ].filter(Boolean).join(" ");
+    
+            const name = onPlayerClickTo
+              ? (
+                <Link to={onPlayerClickTo(r.id_jogador)} className="nm">
+                  {r.nome}
+                </Link>
+              )
+              : <span className="nm">{r.nome}</span>;
+    
+            return (
+              <div className={`rankMobileCard ${rowClass}`} key={r.id_jogador}>
+                <div className="rankMobileLeft">
+                  <div className="rankMobilePos">{pos}</div>
+                  <div className="rankMobileName">
+                    <div className="small">{r.id_jogador}</div>
+                    <div className="nm">{name}</div>
+                  </div>
+                </div>
+    
+                <div style={{display:"flex", alignItems:"center", gap:10}}>
+                  <div className="rankMobilePts">
+                    {r.pontos} <span>pts</span>
+                  </div>
+                  <button
+                    className="moreBtn"
+                    aria-label={`Ver detalhes de ${r.nome}`}
+                    onClick={() => setOpenId(r.id_jogador)}
+                  >
+                    …
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    
+      {/* DESKTOP: tabela */}
       <div className="tableWrap">
+
         <table className={mobileDetails ? "rankTableMobileDetails" : ""}>
           <thead>
             <tr>

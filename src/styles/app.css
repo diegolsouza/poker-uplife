@@ -361,7 +361,7 @@ tr:hover td{background: rgba(124,92,255,.06);}
   flex: 0 0 auto;
 }
 
-/* ===== Top 5 estilo "podium cards" (desktop: sobrepostos) ===== */
+/* ===== Top 5 estilo "podium cards" (desktop: sobrepostos) ===== 
 .podiumShowcase{
   position: relative;
   height: 220px;
@@ -393,6 +393,46 @@ tr:hover td{background: rgba(124,92,255,.06);}
 .podiumCardWide.right{
   right: 0;
   z-index: 1;
+}
+*/
+/* ===== Top 3 desktop SEM sobreposição ===== */
+.podiumShowcase{
+  display: grid;
+  grid-template-columns: 1fr 1.15fr 1fr;
+  gap: 16px;
+  align-items: end;
+  margin-top: 10px;
+  height: auto; /* remove altura fixa */
+}
+
+/* cards deixam de ser absolutos */
+.podiumCardWide{
+  position: static;
+  width: 100%;
+  max-width: unset;
+  min-width: unset;
+}
+
+/* destaque de tamanhos */
+.podiumCardWide.center{
+  transform: none;
+  z-index: auto;
+  padding: 20px;
+}
+
+.podiumCardWide.left,
+.podiumCardWide.right{
+  padding: 16px;
+  opacity: 0.95;
+}
+
+/* remove top offsets antigos */
+.podiumCardWide.center,
+.podiumCardWide.left,
+.podiumCardWide.right{
+  top: auto;
+  left: auto;
+  right: auto;
 }
 
 .podiumTrophy{

@@ -3,6 +3,8 @@ import { getRankingGeral } from "../api/endpoints";
 import type { RankingRow } from "../types";
 import { RankingTable } from "../components/RankingTable";
 import { formatPct } from "../utils/aggregate";
+import { Carousel } from "../components/Carousel";
+
 
 function safeDiv(a: number, b: number): number {
   if (!b) return 0;

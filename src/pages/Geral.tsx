@@ -85,7 +85,7 @@ export function Geral() {
             <div className="podiumShowcase">
               {top5[1] && (
                 <div className="podiumCardWide left podiumSilver">
-                  <div className="podiumTrophy">🏆</div>
+                  <div className="podiumTrophy">🥈</div>
                   <div className="podiumLine1">2º LUGAR</div>
                   <div className="podiumLine2">{top5[1].nome}</div>
                   <div className="podiumPoints">{top5[1].pontos} <span>pontos</span></div>
@@ -94,7 +94,7 @@ export function Geral() {
           
               {top5[0] && (
                 <div className="podiumCardWide center podiumGold">
-                  <div className="podiumTrophy">🥈</div>
+                  <div className="podiumTrophy">🏆</div>
                   <div className="podiumLine1">1º LUGAR</div>
                   <div className="podiumLine2">{top5[0].nome}</div>
                   <div className="podiumPoints">{top5[0].pontos} <span>pontos</span></div>

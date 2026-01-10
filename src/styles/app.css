@@ -525,3 +525,74 @@ tr:hover td{background: rgba(124,92,255,.06);}
   .statsMobile{ display:flex; }
   .statsMobile .card{ width: 78vw; }
 }
+
+/* ===== Carousel Premium ===== */
+.carouselTitle{
+  font-weight: 900;
+  margin-bottom: 10px;
+}
+
+.carouselFrame{
+  position: relative;
+}
+
+.carouselScroller{
+  display:flex;
+  gap:12px;
+  overflow-x:auto;
+  padding: 2px 2px 8px 2px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 18px;
+}
+.carouselScroller::-webkit-scrollbar{ height: 10px; }
+.carouselScroller::-webkit-scrollbar-thumb{ background: rgba(255,255,255,.12); border-radius:999px; }
+
+.carouselItem{
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+.carouselArrow{
+  position:absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(11,16,32,.85);
+  color: var(--text);
+  cursor:pointer;
+  z-index: 5;
+  display:grid;
+  place-items:center;
+  font-size: 24px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.35);
+}
+.carouselArrow.left{ left: 6px; }
+.carouselArrow.right{ right: 6px; }
+
+.carouselDots{
+  display:flex;
+  gap:8px;
+  justify-content:center;
+  margin-top: 8px;
+}
+.dot{
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  border: none;
+  cursor:pointer;
+  background: rgba(255,255,255,.20);
+}
+.dot.active{
+  background: rgba(124,92,255,.85);
+  transform: scale(1.15);
+}
+
+/* No mobile, as setas atrapalham o swipe — escondemos */
+@media (max-width: 720px){
+  .carouselArrow{ display:none; }
+}

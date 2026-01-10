@@ -79,24 +79,83 @@ export function Geral() {
           <div className="card">
             <h3 className="cardTitle">Pódio geral (Top 5)</h3>
 
-            <div className="podiumStage">
-              {top5.map((r, i) => (
-                <div
-                  key={r.id_jogador}
-                  className={[
-                    "podiumStep",
-                    i === 0 ? "gold" : "",
-                    i === 1 ? "silver" : "",
-                    i === 2 ? "bronze" : "",
-                    `p${i + 1}`,
-                  ].join(" ")}
-                >
-                  <div className="podiumRank">{i + 1}º</div>
-                  <div className="podiumName2">{r.nome}</div>
-                  <div className="podiumMeta">{r.pontos} pts • {r.participacoes} part.</div>
-                </div>
-              ))}
+            <div className="card">
+              <h3 className="cardTitle">Pódio geral (Top 5)</h3>
+            
+              {/* Desktop: 1º no centro, 2º à esquerda, 3º à direita (estilo imagem) */}
+              <div className="podiumShowcase">
+                {top5[1] && (
+                  <div className="podiumCardWide left podiumSilver">
+                    <div className="podiumTrophy">🏆</div>
+                    <div className="podiumLine1">2º LUGAR</div>
+                    <div className="podiumLine2">{top5[1].nome}</div>
+                    <div className="podiumPoints">{top5[1].pontos} <span>pontos</span></div>
+                  </div>
+                )}
+            
+                {top5[0] && (
+                  <div className="podiumCardWide center podiumGold">
+                    <div className="podiumTrophy">🏆</div>
+                    <div className="podiumLine1">1º LUGAR</div>
+                    <div className="podiumLine2">{top5[0].nome}</div>
+                    <div className="podiumPoints">{top5[0].pontos} <span>pontos</span></div>
+                  </div>
+                )}
+            
+                {top5[2] && (
+                  <div className="podiumCardWide right podiumBronze">
+                    <div className="podiumTrophy">🏆</div>
+                    <div className="podiumLine1">3º LUGAR</div>
+                    <div className="podiumLine2">{top5[2].nome}</div>
+                    <div className="podiumPoints">{top5[2].pontos} <span>pontos</span></div>
+                  </div>
+                )}
+              </div>
+            
+              {/* Desktop: 4º e 5º */}
+              <div className="podiumMinorRow">
+                {top5[3] && (
+                  <div className="podiumMinor">
+                    <div className="small">4º lugar</div>
+                    <div style={{fontWeight:900, marginTop:6}}>{top5[3].nome}</div>
+                    <div className="small" style={{marginTop:6}}>{top5[3].pontos} pts • {top5[3].participacoes} part.</div>
+                  </div>
+                )}
+                {top5[4] && (
+                  <div className="podiumMinor">
+                    <div className="small">5º lugar</div>
+                    <div style={{fontWeight:900, marginTop:6}}>{top5[4].nome}</div>
+                    <div className="small" style={{marginTop:6}}>{top5[4].pontos} pts • {top5[4].participacoes} part.</div>
+                  </div>
+                )}
+              </div>
+            
+              {/* Mobile: carrossel com Top 5 */}
+              <div className="hScroll" style={{marginTop:12}}>
+                {top5.map((r, i) => {
+                  const cls = i === 0 ? "podiumCardWide podiumGold"
+                    : i === 1 ? "podiumCardWide podiumSilver"
+                    : i === 2 ? "podiumCardWide podiumBronze"
+                    : "podiumCardWide";
+                  return (
+                    <div className="hScrollItem" key={r.id_jogador}>
+                      <div className={cls}>
+                        <div className="podiumTrophy">🏆</div>
+                        <div className="podiumLine1">{i+1}º LUGAR</div>
+                        <div className="podiumLine2">{r.nome}</div>
+                        <div className="podiumPoints">{r.pontos} <span>pontos</span></div>
+                        <div className="podiumLine3">{r.participacoes} participações</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            
+              <div className="small" style={{ marginTop: 10 }}>
+                *Somente jogadores com <b>5+</b> participações entram no ranking geral e nas estatísticas.
+              </div>
             </div>
+
 
             <div className="small" style={{ marginTop: 10 }}>
               *Somente jogadores com <b>5+</b> participações entram no ranking geral e nas estatísticas.

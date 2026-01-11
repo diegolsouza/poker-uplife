@@ -15,10 +15,10 @@ function formatLabel(key: string) {
     serie_b: "CSB",
     fora_mesa_final: "P10+",
     podios: "Pódios",
-    melhor_mao: "Melhor Mão",
+    melhor_mao: "M.Mão",
     rebuy_total: "Rebuy",
     addon_total: "Add-on",
-    participacoes: "Participações",
+    participacoes: "Particip.",
   };
   return map[key] ?? key;
 }
@@ -96,7 +96,7 @@ export function RankingTable({ rows, onPlayerClickTo, hideEliminado, mobileDetai
             <tr>
               <th>Pos</th>
               <th>Jogador</th>
-              <th>Pontos</th>
+              <th>Pts</th>
 
               {/* colunas completas (desktop) */}
               <th className="colFull">P1</th><th className="colFull">P2</th><th className="colFull">P3</th>

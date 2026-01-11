@@ -48,7 +48,7 @@
 body{
   margin:0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
-  /*background: radial-gradient(1200px 800px at 25% 0%, rgba(124,92,255,.18), transparent 60%),
+  /*background: radial-gradient(1200px 800px at 25% 0%, rgba(248,69,1,.14), transparent 60%),
               radial-gradient(900px 600px at 80% 15%, rgba(46,204,113,.10), transparent 55%),
               var(--bg);
   */
@@ -65,7 +65,7 @@ a{color:inherit; text-decoration:none}
 .header{
   position:sticky; top:0; z-index:10;
   backdrop-filter: blur(12px);
-  /*background: rgba(11,16,32,.65);
+  /*background: rgba(20,50,61,.72);
   border-bottom: 1px solid var(--border);*/
   background: rgba(20,50,61,.72);
   border-bottom: 1px solid var(--border);
@@ -75,9 +75,9 @@ a{color:inherit; text-decoration:none}
 .brand{display:flex; align-items:center; gap:10px;}
 .logo{
   width:38px; height:38px; border-radius:12px;
-  background: linear-gradient(135deg, rgba(124,92,255,.95), rgba(124,92,255,.20));
+  background: linear-gradient(135deg, rgba(248,69,1,.92), rgba(248,69,1,.18));
   display:grid; place-items:center;
-  box-shadow: 0 12px 40px rgba(124,92,255,.25);
+  box-shadow: 0 12px 40px rgba(248,69,1,.22);
   /*border: 1px solid rgba(255,255,255,.18);*/
 }
 .brandTitle{font-weight:800; letter-spacing:.3px}
@@ -90,8 +90,8 @@ a{color:inherit; text-decoration:none}
 }
 .nav a.active{
   color:var(--text);
-  /*border-color: rgba(124,92,255,.45);
-  background: rgba(124,92,255,.12);*/
+  /*border-color: rgba(248,69,1,.35);
+  background: rgba(248,69,1,.14);*/
   background: rgba(248,69,1,.14);
   border-color: rgba(248,69,1,.35);
 }
@@ -102,7 +102,7 @@ a{color:inherit; text-decoration:none}
 }
 
 .card{
-  /*background: linear-gradient(180deg, rgba(18,26,51,.92), rgba(15,23,48,.92));
+  /*background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.08));
   border:1px solid var(--border);
   box-shadow: 0 18px 40px rgba(0,0,0,.25);*/
   background: var(--panel);
@@ -142,12 +142,12 @@ select:focus, input:focus{
 }
 
 .tableWrap{overflow:auto; border-radius:18px; border:1px solid var(--border)}
-table{border-collapse:collapse; width:100%; min-width:980px; background: rgba(15,23,48,.55);}
-th,td{padding:10px 10px; border-bottom:1px solid rgba(255,255,255,.06); text-align:right; white-space:nowrap;}
-th{position:sticky; top:0; background: rgba(15,23,48,.95); color:var(--muted); font-weight:700;}
+table{border-collapse:collapse; width:100%; min-width:980px; background: rgba(20,50,61,.55);}
+th,td{padding:10px 10px; border-bottom:1px solid rgba(229,230,234,.08); text-align:right; white-space:nowrap;}
+th{position:sticky; top:0; background: rgba(20,50,61,.92); color:var(--muted); font-weight:700;}
 td:first-child, th:first-child{text-align:center;}
 td:nth-child(2), th:nth-child(2){text-align:left;}
-tr:hover td{background: rgba(124,92,255,.06);}
+tr:hover td{background: rgba(248,69,1,.08);}
 .badge{
   padding:3px 8px; border-radius:999px; font-size:12px; font-weight:800;
   border:1px solid rgba(255,255,255,.12);
@@ -161,7 +161,6 @@ tr:hover td{background: rgba(124,92,255,.06);}
 .moneyNeg{color:var(--bad); font-weight:800;}
 
 .podiumGrid{display:grid; grid-template-columns: repeat(5, minmax(140px,1fr)); gap:12px;}
-@media (max-width: 980px){ .podiumGrid{grid-template-columns: repeat(2, minmax(140px,1fr));} }
 
 .podiumCard{
   border-radius:18px;
@@ -169,9 +168,9 @@ tr:hover td{background: rgba(124,92,255,.06);}
   padding:14px;
   background: rgba(255,255,255,.05);
 }
-.podiumCard.gold{background: rgba(212,175,55,.12); border-color: rgba(212,175,55,.25)}
-.podiumCard.silver{background: rgba(192,192,192,.10); border-color: rgba(192,192,192,.22)}
-.podiumCard.bronze{background: rgba(205,127,50,.10); border-color: rgba(205,127,50,.22)}
+.podiumCard.gold{background: rgba(248,69,1,.12); border-color: rgba(248,69,1,.35)}
+.podiumCard.silver{background: rgba(229,230,234,.10); border-color: rgba(229,230,234,.22)}
+.podiumCard.bronze{background: rgba(248,69,1,.08); border-color: rgba(248,69,1,.28)}
 .podiumPos{font-size:12px; color:var(--muted)}
 .podiumName{font-weight:900; font-size:16px; margin-top:4px}
 .podiumPts{margin-top:6px; font-size:12px; color:var(--muted)}
@@ -262,14 +261,10 @@ tr:hover td{background: rgba(124,92,255,.06);}
 .menuDropdown a:last-child{ border-bottom:none; }
 .menuDropdown a.active{
   color: var(--text);
-  background: rgba(255,124,92,.12);
+  background: rgba(248,69,1,.12);
 }
 
 /* Responsivo: no mobile some o menu desktop e entra o hamburger */
-@media (max-width: 720px){
-  .navDesktop{ display:none; }
-  .navMobile{ display:flex; }
-}
 
 .playerCell{
   display:flex;
@@ -310,7 +305,7 @@ tr:hover td{background: rgba(124,92,255,.06);}
   z-index: 60;
   border-radius: 18px;
   border:1px solid rgba(255,255,255,.12);
-  background: rgba(11,16,32,.96);
+  background: rgba(10,26,32,.96);
   backdrop-filter: blur(12px);
   box-shadow: 0 18px 40px rgba(0,0,0,.45);
   padding: 12px;
@@ -347,15 +342,6 @@ tr:hover td{background: rgba(124,92,255,.06);}
 }
 
 /* Mobile: tabela só com Pos, Jogador, Pontos (+ botão ...) */
-@media (max-width: 720px){
-  .rankTableMobileDetails .colFull{
-    display:none;
-  }
-  .rankTableMobileDetails th, 
-  .rankTableMobileDetails td{
-    min-width: unset;
-  }
-}
 
 /* Pódio estilo "degraus" */
 .podiumStage{
@@ -396,13 +382,10 @@ tr:hover td{background: rgba(124,92,255,.06);}
 .podiumStep.p4{ min-height: 115px; }
 .podiumStep.p5{ min-height: 115px; }
 
-.podiumStep.gold{ background: rgba(212,175,55,.14); border-color: rgba(212,175,55,.25); }
-.podiumStep.silver{ background: rgba(192,192,192,.10); border-color: rgba(192,192,192,.22); }
-.podiumStep.bronze{ background: rgba(205,127,50,.10); border-color: rgba(205,127,50,.22); }
+.podiumStep.gold{ background: rgba(248,69,1,.12); border-color: rgba(248,69,1,.35); }
+.podiumStep.silver{ background: rgba(229,230,234,.10); border-color: rgba(229,230,234,.22); }
+.podiumStep.bronze{ background: rgba(248,69,1,.08); border-color: rgba(248,69,1,.28); }
 
-@media (max-width: 980px){
-  .podiumStage{ grid-template-columns: repeat(2, minmax(140px, 1fr)); }
-}
 /* ===== Carrossel horizontal (swipe) ===== */
 .hScroll{
   display:flex;
@@ -536,9 +519,9 @@ tr:hover td{background: rgba(124,92,255,.06);}
   margin-left: 8px;
 }
 
-.podiumGold{ border-color: rgba(212,175,55,.35); background: rgba(212,175,55,.10); }
-.podiumSilver{ border-color: rgba(192,192,192,.26); background: rgba(192,192,192,.07); }
-.podiumBronze{ border-color: rgba(205,127,50,.28); background: rgba(205,127,50,.07); }
+.podiumGold{ border-color: rgba(248,69,1,.38); background: rgba(248,69,1,.12); }
+.podiumSilver{ border-color: rgba(229,230,234,.26); background: rgba(229,230,234,.08); }
+.podiumBronze{ border-color: rgba(248,69,1,.28); background: rgba(248,69,1,.08); }
 
 /* Desktop: Top 4 e 5 em linha */
 .podiumMinorRow{
@@ -555,17 +538,6 @@ tr:hover td{background: rgba(124,92,255,.06);}
 }
 
 /* Mobile: Top5 vira carrossel (sem sobreposição) */
-@media (max-width: 720px){
-  .podiumShowcase{ height: auto; }
-  .podiumCardWide{
-    position: static;
-    width: 82vw;
-    min-width: unset;
-    max-width: unset;
-    transform: none;
-  }
-  .podiumMinorRow{ display:none; }
-}
 
 /* ===== Ranking mobile em cards (sem barra lateral) ===== */
 .rankMobileList{
@@ -618,17 +590,8 @@ tr:hover td{background: rgba(124,92,255,.06);}
 }
 
 /* Em mobile: esconde tabela e mostra lista */
-@media (max-width: 720px){
-  .tableWrap{ display:none; }
-  .rankMobileList{ display:flex; flex-direction:column; }
-}
 
 .statsMobile{ display:none; }
-@media (max-width:720px){
-  .statsDesktop{ display:none; }
-  .statsMobile{ display:flex; }
-  .statsMobile .card{ width: 78vw; }
-}
 
 /* ===== Carousel Premium ===== */
 .carouselTitle{
@@ -665,7 +628,7 @@ tr:hover td{background: rgba(124,92,255,.06);}
   height: 42px;
   border-radius: 16px;
   /*border:1px solid rgba(255,255,255,.12);
-  background: rgba(11,16,32,.85);*/
+  background: rgba(20,50,61,.85);*/
   border: 1px solid var(--border);
   background: rgba(255,255,255,.06);
   color: var(--text);
@@ -694,20 +657,13 @@ tr:hover td{background: rgba(124,92,255,.06);}
   background: rgba(255,255,255,.20);
 }
 .dot.active{
-  background: rgba(124,92,255,.85);
+  background: rgba(248,69,1,.85);
   transform: scale(1.15);
 }
 
 /* No mobile, as setas atrapalham o swipe — escondemos */
-@media (max-width: 720px){
-  .carouselArrow{ display:none; }
-}
 
 .podiumMobileOnly{ display:none; }
-@media (max-width: 720px){
-  .podiumShowcase, .podiumMinorRow{ display:none; }
-  .podiumMobileOnly{ display:block; }
-}
 /* Badge usado em Pos e Pts no ranking (desktop) */
 .posBadge, .ptsBadge{
   display:inline-grid;
@@ -726,15 +682,47 @@ tr:hover td{background: rgba(124,92,255,.06);}
 }
 
 /* "..." só no mobile: no desktop, some */
-@media (min-width: 721px){
-  .moreBtn{ display:none; }
-}
-@media (max-width: 720px){
-  .moreBtn{ display:inline-grid; }
-}
 a{ color: var(--text); }
 a:hover{ color: rgba(248,69,1,.95); }
 .hamburgerBtn:hover, .moreBtn:hover, .detailsClose:hover, .carouselArrow:hover{
   border-color: rgba(248,69,1,.35);
   background: rgba(248,69,1,.10);
+}
+
+/* Consolidated responsive blocks */
+@media (max-width: 980px){
+.podiumGrid{grid-template-columns: repeat(2, minmax(140px,1fr));}
+  .podiumStage{ grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+}
+
+@media (min-width: 721px){
+  .moreBtn{ display:none; }
+}
+
+@media (max-width: 720px){
+  .navDesktop{ display:none; }
+  .navMobile{ display:flex; }
+  .rankTableMobileDetails .colFull{
+    display:none;
+  }
+  .rankTableMobileDetails th, 
+  .rankTableMobileDetails td{
+    min-width: unset;
+  }
+  .podiumCardWide{
+    position: static;
+    width: 82vw;
+    min-width: unset;
+    max-width: unset;
+    transform: none;
+  }
+  .tableWrap{ display:none; }
+  .rankMobileList{ display:flex; flex-direction:column; }
+  .statsDesktop{ display:none; }
+  .statsMobile{ display:flex; }
+  .statsMobile .card{ width: 78vw; }
+  .carouselArrow{ display:none; }
+  .podiumShowcase, .podiumMinorRow{ display:none; }
+  .podiumMobileOnly{ display:block; }
+  .moreBtn{ display:inline-grid; }
 }

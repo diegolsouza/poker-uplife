@@ -733,9 +733,9 @@ a:hover{ color: rgba(248,69,1,.95); }
   .moreBtn{ display:inline-grid; }
 }
 
-/* ===== Botão do filtro de temporada (estilo card) ===== */
+/* ===== Botão do filtro de temporada (ajustado p/ mobile) ===== */
 .filterToggle{
-  all: unset;                 /* remove estilo padrão de botão */
+  all: unset;
   display: block;
   width: 100%;
   cursor: pointer;
@@ -746,20 +746,50 @@ a:hover{ color: rgba(248,69,1,.95); }
   background: transparent;
   color: var(--text);
 
-  font-weight: inherit;
+  font-weight: 900;
+  line-height: 1.25;
+
+  box-sizing: border-box;
 }
 
+/* container interno */
+.filterToggle > div{
+  width: 100%;
+  min-width: 0;
+}
+
+/* texto do filtro */
+.filterToggle > div > div:first-child{
+  font-size: 16px;
+  white-space: normal;        /* permite quebra */
+  word-break: break-word;     /* evita overflow */
+}
+
+/* setinha */
+.filterToggle > div > div:last-child{
+  flex-shrink: 0;
+  margin-left: 8px;
+  transition: transform .2s ease, opacity .2s ease;
+}
+
+/* hover desktop */
 .filterToggle:hover{
   background: rgba(255,255,255,.04);
 }
 
+/* foco teclado */
 .filterToggle:focus-visible{
   outline: none;
   box-shadow: 0 0 0 4px var(--focus);
-  border-radius: 18px;
 }
 
-/* ícone da setinha */
-.filterToggle > div > div:last-child{
-  transition: transform .2s ease, opacity .2s ease;
+/* ===== Ajustes específicos de mobile ===== */
+@media (max-width: 720px){
+  .filterToggle{
+    padding: 14px 16px;
+  }
+
+  .filterToggle > div > div:first-child{
+    font-size: 14px;          /* reduz fonte no mobile */
+  }
 }

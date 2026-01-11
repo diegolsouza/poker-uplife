@@ -131,7 +131,7 @@ export function RankingTable({ rows, onPlayerClickTo, hideEliminado, mobileDetai
               <th className="colFull">CSB</th>
               <th className="colFull">P10+</th>
               <th className="colFull">Pódios</th>
-              <th className="colFull">Melhor Mão</th>
+              <th className="colFull">M.Mão</th>
               <th className="colFull">Rebuy</th>
               <th className="colFull">Add-on</th>
               <th className="colFull">Part.</th>

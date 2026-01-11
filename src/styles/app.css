@@ -797,3 +797,39 @@ a:hover{ color: rgba(248,69,1,.95); }
     gap: 8px;               /* menos espaço entre texto e seta */
   }
 }
+
+/* ===== Polimento premium: animação do filtro (Temporada) ===== */
+.filterPanel{
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  overflow: hidden;
+  pointer-events: none;
+
+  transition: max-height .22s ease, opacity .18s ease, transform .22s ease;
+}
+
+.filterPanel.open{
+  max-height: 520px; /* altura segura para o SeasonFilter */
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.filterPanelInner{
+  padding-top: 12px;
+}
+
+/* seta gira ao abrir */
+.filterToggle .filterChevron{
+  opacity: .85;
+  font-size: 18px;
+  font-weight: 900;
+  transition: transform .22s ease;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.filterToggle.isOpen .filterChevron{
+  transform: rotate(180deg);
+}

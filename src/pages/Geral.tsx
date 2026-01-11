@@ -59,10 +59,11 @@ export function Geral() {
 
     // ✅ novo: aproveitamento = pontos / participações
     const melhorAproveitamento = byMax(r => safeDiv(r.pontos, r.participacoes));
+    const maiorEficienciaPontos = byMax(r => safeDiv(r.pontos, r.participacoes + r.rebuy_total));
 
     return {
-      maisRebuys, maisPart, maisPodios, maisTitulos, maisMelhorMao,
-      melhorTaxaVitoria, melhorTaxaPodio, melhorAproveitamento
+      maiorEficienciaPontos, melhorAproveitamento, maisPodios, maisTitulos,  melhorTaxaVitoria,
+      melhorTaxaPodio, melhorAproveitamento, maisMelhorMao, maisPart, maisRebuys
     };
   }, [eligible]);
 
@@ -222,7 +223,15 @@ export function Geral() {
                     )}
                   </div>
                 </div>,
-          
+                <div className="card" "eficiencia">
+                  <div className="small">Maior Eficiência de Pontos</div>
+                  <div className="kpi">{stats.maiorEficienciaPontos?.nome ?? "-"}</div>
+                  <div className="small">
+                    {stats.maiorEficienciaPontos
+                      ? (stats.maiorEficienciaPontos.pontos / Math.max(1, stats.maiorEficienciaPontos.participacoes + stats.maiorEficienciaPontos.rebuy_total)).toFixed(2)
+                      : "0.00"}
+                  </div>
+                </div>,
                 <div className="card" key="aprov">
                   <div className="small">Melhor aproveitamento (pontos/part.)</div>
                   <div className="kpi">{stats.melhorAproveitamento?.nome ?? "-"}</div>

@@ -3,5 +3,5 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  base: process.env.VITE_BASE ?? "/poker-uplife/",
+  base: process.env.VITE_BASE ?? "/poker-uplife/dev/",
 });

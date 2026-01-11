@@ -14,6 +14,9 @@ export function Home() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ✅ novo: filtro minimizado/expandido
+  const [filterOpen, setFilterOpen] = useState<boolean>(false);
+
   useEffect(() => {
     (async () => {
       try {
@@ -83,12 +86,36 @@ export function Home() {
     <div className="container">
       {error && <div className="card" style={{borderColor:"rgba(255,77,77,.35)"}}><b>Erro:</b> {error}</div>}
 
-      <SeasonFilter
-        options={options}
-        ano={ano}
-        temporada={temporada}
-        onChange={(n) => { setAno(n.ano); setTemporada(n.temporada); }}
-      />
+      {/* ✅ Filtro minimizado/expandido */}
+      <div
+        className="card"
+        style={{ cursor: "pointer" }}
+        role="button"
+        tabIndex={0}
+        aria-expanded={filterOpen}
+        onClick={() => setFilterOpen(v => !v)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") setFilterOpen(v => !v);
+        }}
+      >
+        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", gap:12}}>
+          <div style={{fontWeight: 900}}>Filtrar por temporada</div>
+          <div style={{opacity:.8, fontSize: 18, fontWeight: 900}} aria-hidden="true">
+            {filterOpen ? "▲" : "▼"}
+          </div>
+        </div>
+
+        {filterOpen && (
+          <div style={{marginTop:12}}>
+            <SeasonFilter
+              options={options}
+              ano={ano}
+              temporada={temporada}
+              onChange={(n) => { setAno(n.ano); setTemporada(n.temporada); }}
+            />
+          </div>
+        )}
+      </div>
 
       <div className="row" style={{marginTop:12}}>
         <div className="card" style={{flex:"1 1 220px"}}>

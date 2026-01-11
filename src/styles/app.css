@@ -601,7 +601,8 @@ tr:hover td{background: rgba(248,69,1,.08);}
 
 .carouselFrame{
   position: relative;
-  padding: 0 56px; /* espaço para as setas no desktop */
+  overflow: visible;
+  padding: 0 ;
 }
 
 .carouselScroller{
@@ -699,6 +700,8 @@ a:hover{ color: rgba(248,69,1,.95); }
 
 @media (min-width: 721px){
   .moreBtn{ display:none; }
+  .carouselArrow.left{ left: -52px; }
+  .carouselArrow.right{ right: -52px; }
 }
 
 @media (max-width: 720px){

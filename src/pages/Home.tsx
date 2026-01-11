@@ -25,7 +25,11 @@ export function Home() {
   const [filterOpen, setFilterOpen] = useState<boolean>(false);
 
   // ✅ novo: informações da temporada minimizado/expandido
-  const [infoOpen, setInfoOpen] = useState<boolean>(true);
+  const [infoOpen, setInfoOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true; // fallback seguro
+    return window.innerWidth > 720; // aberto no desktop, fechado no mobile
+  });
+
 
   useEffect(() => {
     (async () => {

@@ -12,11 +12,23 @@ function filterLabel(ano: string, temporada: string) {
   return `Filtrando por: ${ano} • ${temporada}`;
 }
 
+function infoDefaultOpen() {
+  if (typeof window === "undefined") return true;
+  return window.innerWidth > 720; // aberto no desktop, fechado no mobile
+}
+
 export function Home() {
   const [options, setOptions] = useState<AnoTemporada[]>([]);
   const [rodadas, setRodadas] = useState<Rodada[]>([]);
+
+  // ✅ filtro aplicado (é este que controla os dados)
   const [ano, setAno] = useState<string>("ALL");
   const [temporada, setTemporada] = useState<string>("ALL");
+
+  // ✅ filtro "rascunho" (o usuário mexe aqui e só aplica no botão)
+  const [pendingAno, setPendingAno] = useState<string>("ALL");
+  const [pendingTemporada, setPendingTemporada] = useState<string>("ALL");
+
   const [rows, setRows] = useState<RankingRow[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,12 +36,8 @@ export function Home() {
   // ✅ filtro minimizado/expandido
   const [filterOpen, setFilterOpen] = useState<boolean>(false);
 
-  // ✅ novo: informações da temporada minimizado/expandido
-  const [infoOpen, setInfoOpen] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true; // fallback seguro
-    return window.innerWidth > 720; // aberto no desktop, fechado no mobile
-  });
-
+  // ✅ informações da temporada minimizado/expandido
+  const [infoOpen, setInfoOpen] = useState<boolean>(() => infoDefaultOpen());
 
   useEffect(() => {
     (async () => {
@@ -45,8 +53,13 @@ export function Home() {
             a.ano === b.ano ? a.temporada.localeCompare(b.temporada) : a.ano.localeCompare(b.ano)
           );
           const last = sorted[sorted.length - 1];
+
           setAno(last.ano);
           setTemporada(last.temporada);
+
+          // mantém rascunho sincronizado com o default
+          setPendingAno(last.ano);
+          setPendingTemporada(last.temporada);
         }
       } catch (e: any) {
         setError(e?.message ?? "Erro ao carregar");
@@ -55,6 +68,14 @@ export function Home() {
       }
     })();
   }, []);
+
+  // sempre que abrir o filtro, inicializa o "rascunho" com o filtro aplicado
+  useEffect(() => {
+    if (filterOpen) {
+      setPendingAno(ano);
+      setPendingTemporada(temporada);
+    }
+  }, [filterOpen, ano, temporada]);
 
   useEffect(() => {
     if (!options.length) return;
@@ -144,15 +165,30 @@ export function Home() {
           <div className="filterPanelInner">
             <SeasonFilter
               options={options}
-              ano={ano}
-              temporada={temporada}
+              ano={pendingAno}
+              temporada={pendingTemporada}
               onChange={(n) => {
-                setAno(n.ano);
-                setTemporada(n.temporada);
-                // ✅ polimento premium: fecha automaticamente após selecionar
-                setFilterOpen(false);
+                setPendingAno(n.ano);
+                setPendingTemporada(n.temporada);
               }}
             />
+
+            {/* ✅ Aplicar filtro somente ao clicar */}
+            <div className="filterActions">
+              <button
+                type="button"
+                className="applyBtn"
+                title="Atualizar"
+                aria-label="Atualizar"
+                onClick={() => {
+                  setAno(pendingAno);
+                  setTemporada(pendingTemporada);
+                  setFilterOpen(false);
+                }}
+              >
+                ⟳
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -197,18 +233,14 @@ export function Home() {
       </div>
 
       <div style={{ marginTop: 12 }}>
-        {loading ? (
-          <div className="card">Carregando…</div>
-        ) : (
-          <RankingTable
-            rows={rows}
-            onPlayerClickTo={(id) =>
-              `/jogador/${id}?ano=${encodeURIComponent(ano)}&temporada=${encodeURIComponent(temporada)}`
-            }
-            mobileDetails={true}
-            hideEliminado={false}
-          />
-        )}
+        <RankingTable
+          rows={rows}
+          onPlayerClickTo={(id) =>
+            `/jogador/${id}?ano=${encodeURIComponent(ano)}&temporada=${encodeURIComponent(temporada)}`
+          }
+          mobileDetails={true}
+          hideEliminado={false}
+        />
       </div>
     </div>
   );

@@ -65,7 +65,6 @@ export function RankingTable({ rows, onPlayerClickTo, hideEliminado, mobileDetai
                 <div className="rankMobileLeft">
                   <div className="rankMobilePos">{pos}</div>
                   <div className="rankMobileName">
-                    <div className="small">{r.id_jogador}</div>
                     <div className="nm">{name}</div>
                   </div>
                 </div>

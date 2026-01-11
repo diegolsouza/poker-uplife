@@ -126,12 +126,15 @@ export function RankingTable({ rows, onPlayerClickTo, hideEliminado, mobileDetai
               ].filter(Boolean).join(" ");
 
               const nameCell = onPlayerClickTo
-                ? <Link to={onPlayerClickTo(r.id_jogador)}><span className="badge">{r.id_jogador}</span>{" "}{r.nome}</Link>
-                : <span><span className="badge">{r.id_jogador}</span>{" "}{r.nome}</span>;
+                /*? <Link to={onPlayerClickTo(r.id_jogador)}><span className="badge">{r.id_jogador}</span>{" "}{r.nome}</Link>
+                : <span><span className="badge">{r.id_jogador}</span>{" "}{r.nome}</span>;*/
+                ? <Link to={onPlayerClickTo(r.id_jogador)}>{r.nome}</Link>
+                : <span>{r.nome}</span>;
+
 
               return (
                 <tr key={r.id_jogador} className={cls}>
-                  <td>{pos}</td>
+                  <td><span className="posBadge">{pos}</span></td>
 
                   <td style={{textAlign:"left"}}>
                     <div className="playerCell">
@@ -150,7 +153,7 @@ export function RankingTable({ rows, onPlayerClickTo, hideEliminado, mobileDetai
                     </div>
                   </td>
 
-                  <td><b>{r.pontos}</b></td>
+                  <td><span className="ptsBadge">{r.pontos}</span></td>
 
                   {/* desktop */}
                   <td className="colFull">{r.p1}</td><td className="colFull">{r.p2}</td><td className="colFull">{r.p3}</td>

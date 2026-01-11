@@ -247,7 +247,7 @@ tr:hover td{background: rgba(124,92,255,.06);}
   width: 190px;
   border-radius: 16px;
   border:1px solid rgba(255,255,255,.12);
-  background: rgba(11,16,32,.95);
+  background: rgba(20,50,61,.92);
   backdrop-filter: blur(12px);
   box-shadow: 0 18px 40px rgba(0,0,0,.35);
   z-index: 30;
@@ -262,7 +262,7 @@ tr:hover td{background: rgba(124,92,255,.06);}
 .menuDropdown a:last-child{ border-bottom:none; }
 .menuDropdown a.active{
   color: var(--text);
-  background: rgba(124,92,255,.12);
+  background: rgba(255,124,92,.12);
 }
 
 /* Responsivo: no mobile some o menu desktop e entra o hamburger */

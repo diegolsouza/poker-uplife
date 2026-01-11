@@ -648,3 +648,27 @@ tr:hover td{background: rgba(124,92,255,.06);}
   .podiumShowcase, .podiumMinorRow{ display:none; }
   .podiumMobileOnly{ display:block; }
 }
+/* Badge usado em Pos e Pts no ranking (desktop) */
+.posBadge, .ptsBadge{
+  display:inline-grid;
+  place-items:center;
+  min-width: 34px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  font-weight: 900;
+}
+
+.ptsBadge{
+  min-width: 44px;
+}
+
+/* "..." só no mobile: no desktop, some */
+@media (min-width: 721px){
+  .moreBtn{ display:none; }
+}
+@media (max-width: 720px){
+  .moreBtn{ display:inline-grid; }
+}

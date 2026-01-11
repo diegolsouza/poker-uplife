@@ -833,3 +833,12 @@ a:hover{ color: rgba(248,69,1,.95); }
 .filterToggle.isOpen .filterChevron{
   transform: rotate(180deg);
 }
+
+/* ===== Informações da Temporada: cards dentro do expansível ===== */
+.filterPanel .row{
+  margin-top: 0;
+}
+
+.filterPanel .row .card{
+  box-shadow: none; /* evita sombra duplicada dentro do card pai */
+}

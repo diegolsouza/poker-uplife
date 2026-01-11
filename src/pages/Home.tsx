@@ -115,6 +115,7 @@ export function Home() {
           <RankingTable
             rows={rows}
             onPlayerClickTo={(id) => `/jogador/${id}?ano=${encodeURIComponent(ano)}&temporada=${encodeURIComponent(temporada)}`}
+            mobileDetails={true}
             hideEliminado={false}
           />
         )}

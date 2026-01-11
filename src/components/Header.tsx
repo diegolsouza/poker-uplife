@@ -31,9 +31,9 @@ export function Header() {
     <div className="header">
       <div className="headerInner">
         <div className="brand">
-          <img className="brandLogo" src="./logo.png" alt="Poker Uplife" />
+          <img className="brandLogo" src="./logo.png" alt="Uplife Poker" />
           <div>
-            <div className="brandTitle">Poker Uplife</div>
+            <div className="brandTitle">Uplife Poker</div>
             {/* removido: Ranking • PIX • Estatísticas */}
           </div>
         </div>

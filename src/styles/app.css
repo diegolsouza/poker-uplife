@@ -601,6 +601,7 @@ tr:hover td{background: rgba(248,69,1,.08);}
 
 .carouselFrame{
   position: relative;
+  padding: 0 56px; /* espaço para as setas no desktop */
 }
 
 .carouselScroller{
@@ -638,9 +639,10 @@ tr:hover td{background: rgba(248,69,1,.08);}
   place-items:center;
   font-size: 24px;
   box-shadow: 0 18px 40px rgba(0,0,0,.35);
+  pointer-events: auto;
 }
-.carouselArrow.left{ left: 6px; }
-.carouselArrow.right{ right: 6px; }
+.carouselArrow.left{ left: 8px; }
+.carouselArrow.right{ right: 8px; }
 
 .carouselDots{
   display:flex;

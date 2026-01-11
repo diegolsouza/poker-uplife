@@ -104,7 +104,7 @@ export function Home() {
         <div className="card" style={{flex:"1 1 220px"}}>
           <div className="small">Distribuído em premiações</div>
           <div className="kpi">{formatMoneyBRL(kpis.totalDistribuido)}</div>
-          <div className="small">Soma do prizepool por rodada</div>
+          <div className="small">Soma do prizepool da temporada</div>
         </div>
       </div>
 

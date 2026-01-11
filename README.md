@@ -1,6 +1,6 @@
 # Poker Uplife (React)
 
-Frontend moderno para consumir os dados do Google Sheets via Apps Script.
+Frontend moderno para consumir os dados do Google Sheets via Apps Script. 
 
 ## Requisitos
 - Node.js 18+

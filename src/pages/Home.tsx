@@ -154,6 +154,7 @@ export function Home() {
               onPointerDown={(e) => e.stopPropagation()}
             >
               <div className="filterPanelInner">
+                <div className="seasonFilterWithApply">
                 <SeasonFilter
                   options={options}
                   ano={pendingAno}
@@ -164,22 +165,20 @@ export function Home() {
                   }}
                 />
 
-                {/* ✅ Aplicar filtro somente ao clicar */}
-                <div className="filterActions">
-                  <button
-                    type="button"
-                    className="applyBtn"
-                    title="Atualizar"
-                    aria-label="Atualizar"
-                    onClick={() => {
-                      setAno(pendingAno);
-                      setTemporada(pendingTemporada);
-                      setFilterOpen(false);
-                    }}
-                  >
-                    ⟳
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="applyBtn"
+                  title="Atualizar"
+                  aria-label="Atualizar"
+                  onClick={() => {
+                    setAno(pendingAno);
+                    setTemporada(pendingTemporada);
+                    setFilterOpen(false);
+                  }}
+                >
+                  ⟳
+                </button>
+              </div>
               </div>
             </div>
           </div>

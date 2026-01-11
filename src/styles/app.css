@@ -408,9 +408,15 @@ tr:hover td{background: rgba(124,92,255,.06);}
 /* cards deixam de ser absolutos */
 .podiumCardWide{
   position: static;
+  top: 26px;
   width: 100%;
   max-width: unset;
   min-width: unset;
+  border-radius: 20px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.05);
+  padding: 16px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.30);
 }
 
 /* destaque de tamanhos */

@@ -9,6 +9,31 @@ type Props = {
   mobileDetails?: boolean; // <- novo: habilita "..." + popup no mobile
 };
 
+function isTie(a: RankingRow, b: RankingRow): boolean {
+  const keys: (keyof RankingRow)[] = [
+    "pontos","p1","p2","p3","p4","p5","p6","p7","p8","p9",
+    "serie_b","fora_mesa_final","podios","melhor_mao",
+    "rebuy_total","addon_total","participacoes"
+  ];
+  for (const k of keys) {
+    // @ts-expect-error numeric compare
+    if ((a[k] || 0) !== (b[k] || 0)) return false;
+  }
+  return true;
+}
+
+function computeDisplayRanks(rows: RankingRow[]): number[] {
+  const ranks: number[] = [];
+  for (let i = 0; i < rows.length; i++) {
+    if (i > 0 && isTie(rows[i], rows[i-1])) {
+      ranks.push(ranks[i-1]);
+    } else {
+      ranks.push(i + 1);
+    }
+  }
+  return ranks;
+}
+
 function formatLabel(key: string) {
   const map: Record<string, string> = {
     p1: "P1", p2: "P2", p3: "P3", p4: "P4", p5: "P5", p6: "P6", p7: "P7", p8: "P8", p9: "P9",
@@ -31,6 +56,8 @@ export function RankingTable({ rows, onPlayerClickTo, hideEliminado, mobileDetai
     return base;
   }, [rows, hideEliminado]);
 
+  const ranks = useMemo(() => computeDisplayRanks(filtered), [filtered]);
+
   const detailKeys: Array<keyof RankingRow> = [
     "p1","p2","p3","p4","p5","p6","p7","p8","p9",
     "serie_b","fora_mesa_final","podios","melhor_mao","rebuy_total","addon_total","participacoes"
@@ -44,7 +71,7 @@ export function RankingTable({ rows, onPlayerClickTo, hideEliminado, mobileDetai
       {mobileDetails && (
         <div className="rankMobileList">
           {filtered.map((r, idx) => {
-            const pos = idx + 1;
+            const pos = ranks[idx];
             const rowClass = [
               pos === 1 ? "podiumGold" : "",
               pos === 2 ? "podiumSilver" : "",
@@ -116,7 +143,7 @@ export function RankingTable({ rows, onPlayerClickTo, hideEliminado, mobileDetai
 
           <tbody>
             {filtered.map((r, idx) => {
-              const pos = idx + 1;
+              const pos = ranks[idx];
               const cls = [
                 pos === 1 ? "rankTop1" : "",
                 pos === 2 ? "rankTop2" : "",

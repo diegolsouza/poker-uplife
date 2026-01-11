@@ -732,3 +732,34 @@ a:hover{ color: rgba(248,69,1,.95); }
   .podiumMobileOnly{ display:block; }
   .moreBtn{ display:inline-grid; }
 }
+
+/* ===== Botão do filtro de temporada (estilo card) ===== */
+.filterToggle{
+  all: unset;                 /* remove estilo padrão de botão */
+  display: block;
+  width: 100%;
+  cursor: pointer;
+
+  padding: 16px 18px;
+  border-radius: 18px;
+
+  background: transparent;
+  color: var(--text);
+
+  font-weight: inherit;
+}
+
+.filterToggle:hover{
+  background: rgba(255,255,255,.04);
+}
+
+.filterToggle:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 4px var(--focus);
+  border-radius: 18px;
+}
+
+/* ícone da setinha */
+.filterToggle > div > div:last-child{
+  transition: transform .2s ease, opacity .2s ease;
+}

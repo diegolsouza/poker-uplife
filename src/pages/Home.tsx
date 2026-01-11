@@ -101,29 +101,30 @@ export function Home() {
         </div>
       )}
 
-      {/* ✅ Filtro minimizado/expandido */}
+      {/* ✅ Filtro minimizado/expandido (com animação) */}
       <div className="card">
         <button
           type="button"
-          className="filterToggle"
+          className={"filterToggle " + (filterOpen ? "isOpen" : "")}
           aria-expanded={filterOpen}
           onClick={() => setFilterOpen(v => !v)}
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, width: "100%" }}>
             <div style={{ fontWeight: 900 }}>{filterLabel(ano, temporada)}</div>
-            <div style={{ opacity: 0.85, fontSize: 18, fontWeight: 900 }} aria-hidden="true">
-              {filterOpen ? "▲" : "▼"}
+            <div className="filterChevron" aria-hidden="true">
+              ▼
             </div>
           </div>
         </button>
 
-        {filterOpen && (
-          <div
-            style={{ marginTop: 12 }}
-            onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
+        {/* Mantém montado para animar abertura/fechamento */}
+        <div
+          className={"filterPanel " + (filterOpen ? "open" : "")}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div className="filterPanelInner">
             <SeasonFilter
               options={options}
               ano={ano}
@@ -131,10 +132,12 @@ export function Home() {
               onChange={(n) => {
                 setAno(n.ano);
                 setTemporada(n.temporada);
+                // ✅ polimento premium: fecha automaticamente após selecionar
+                setFilterOpen(false);
               }}
             />
           </div>
-        )}
+        </div>
       </div>
 
       <div className="row" style={{ marginTop: 12 }}>

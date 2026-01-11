@@ -12,25 +12,32 @@ function filterLabel(ano: string, temporada: string) {
   return `Filtrando por: ${ano} • ${temporada}`;
 }
 
+function infoDefaultOpen() {
+  if (typeof window === "undefined") return true;
+  return window.innerWidth > 720; // aberto no desktop, fechado no mobile
+}
+
 export function Home() {
   const [options, setOptions] = useState<AnoTemporada[]>([]);
   const [rodadas, setRodadas] = useState<Rodada[]>([]);
+
+  // ✅ filtro aplicado (controla os dados)
   const [ano, setAno] = useState<string>("ALL");
   const [temporada, setTemporada] = useState<string>("ALL");
+
+  // ✅ filtro rascunho (só aplica no botão)
+  const [pendingAno, setPendingAno] = useState<string>("ALL");
+  const [pendingTemporada, setPendingTemporada] = useState<string>("ALL");
+
   const [rows, setRows] = useState<RankingRow[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ filtro minimizado/expandido
+  // ✅ expansíveis
   const [filterOpen, setFilterOpen] = useState<boolean>(false);
+  const [infoOpen, setInfoOpen] = useState<boolean>(() => infoDefaultOpen());
 
-  // ✅ novo: informações da temporada minimizado/expandido
-  const [infoOpen, setInfoOpen] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true; // fallback seguro
-    return window.innerWidth > 720; // aberto no desktop, fechado no mobile
-  });
-
-
+  // Carrega opções + rodadas (uma vez)
   useEffect(() => {
     (async () => {
       try {
@@ -39,14 +46,17 @@ export function Home() {
         setOptions(opts);
         setRodadas(rods);
 
-        // default: mais recente (maior ano, depois maior temporada)
+        // default: mais recente
         if (opts.length) {
           const sorted = [...opts].sort((a, b) =>
             a.ano === b.ano ? a.temporada.localeCompare(b.temporada) : a.ano.localeCompare(b.ano)
           );
           const last = sorted[sorted.length - 1];
+
           setAno(last.ano);
           setTemporada(last.temporada);
+          setPendingAno(last.ano);
+          setPendingTemporada(last.temporada);
         }
       } catch (e: any) {
         setError(e?.message ?? "Erro ao carregar");
@@ -56,6 +66,15 @@ export function Home() {
     })();
   }, []);
 
+  // Ao abrir o filtro, sincroniza rascunho com o aplicado
+  useEffect(() => {
+    if (filterOpen) {
+      setPendingAno(ano);
+      setPendingTemporada(temporada);
+    }
+  }, [filterOpen, ano, temporada]);
+
+  // Carrega ranking quando o filtro aplicado muda
   useEffect(() => {
     if (!options.length) return;
 
@@ -68,7 +87,7 @@ export function Home() {
         if (temporada !== "ALL") {
           const r = await getRankingTemporada(ano === "ALL" ? options[0].ano : ano, temporada);
 
-          // se ano=ALL e temporada específica: soma a temporada em todos os anos (raro, mas suportado)
+          // se ano=ALL e temporada específica: soma a temporada em todos os anos
           if (ano === "ALL") {
             const years = Array.from(new Set(options.filter(o => o.temporada === temporada).map(o => o.ano)));
             const all = await Promise.all(years.map(y => getRankingTemporada(y, temporada)));
@@ -108,98 +127,114 @@ export function Home() {
         </div>
       )}
 
-      {/* ✅ Filtro minimizado/expandido (com animação) */}
-      <div className="card">
-        <button
-          type="button"
-          className={"filterToggle " + (filterOpen ? "isOpen" : "")}
-          aria-expanded={filterOpen}
-          onClick={() => setFilterOpen(v => !v)}
-        >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, width: "100%" }}>
-            <div style={{ fontWeight: 900 }}>{filterLabel(ano, temporada)}</div>
-            <div className="filterChevron" aria-hidden="true">
-              ▼
+      {loading ? (
+        <div className="card">Carregando…</div>
+      ) : (
+        <>
+          {/* ✅ Filtro minimizado/expandido */}
+          <div className="card">
+            <button
+              type="button"
+              className={"filterToggle " + (filterOpen ? "isOpen" : "")}
+              aria-expanded={filterOpen}
+              onClick={() => setFilterOpen(v => !v)}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, width: "100%" }}>
+                <div style={{ fontWeight: 900 }}>{filterLabel(ano, temporada)}</div>
+                <div className="filterChevron" aria-hidden="true">
+                  ▼
+                </div>
+              </div>
+            </button>
+
+            <div
+              className={"filterPanel " + (filterOpen ? "open" : "")}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div className="filterPanelInner">
+                <SeasonFilter
+                  options={options}
+                  ano={pendingAno}
+                  temporada={pendingTemporada}
+                  onChange={(n) => {
+                    setPendingAno(n.ano);
+                    setPendingTemporada(n.temporada);
+                  }}
+                />
+
+                {/* ✅ Aplicar filtro somente ao clicar */}
+                <div className="filterActions">
+                  <button
+                    type="button"
+                    className="applyBtn"
+                    title="Atualizar"
+                    aria-label="Atualizar"
+                    onClick={() => {
+                      setAno(pendingAno);
+                      setTemporada(pendingTemporada);
+                      setFilterOpen(false);
+                    }}
+                  >
+                    ⟳
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </button>
 
-        {/* Mantém montado para animar abertura/fechamento */}
-        <div
-          className={"filterPanel " + (filterOpen ? "open" : "")}
-          onClick={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <div className="filterPanelInner">
-            <SeasonFilter
-              options={options}
-              ano={ano}
-              temporada={temporada}
-              onChange={(n) => {
-                setAno(n.ano);
-                setTemporada(n.temporada);
-                // ✅ polimento premium: fecha automaticamente após selecionar
-                setFilterOpen(false);
-              }}
+          {/* ✅ Informações da Temporada (expansível) */}
+          <div className="card" style={{ marginTop: 12 }}>
+            <button
+              type="button"
+              className={"filterToggle " + (infoOpen ? "isOpen" : "")}
+              aria-expanded={infoOpen}
+              onClick={() => setInfoOpen(v => !v)}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, width: "100%" }}>
+                <div style={{ fontWeight: 900 }}>Informações da Temporada</div>
+                <div className="filterChevron" aria-hidden="true">
+                  ▼
+                </div>
+              </div>
+            </button>
+
+            <div className={"filterPanel " + (infoOpen ? "open" : "")}>
+              <div className="filterPanelInner">
+                <div className="row">
+                  <div className="card" style={{ flex: "1 1 220px" }}>
+                    <div className="small">Jogadores (no ranking)</div>
+                    <div className="kpi">{kpis.jogadores}</div>
+                    <div className="small">Considera o filtro selecionado</div>
+                  </div>
+                  <div className="card" style={{ flex: "1 1 220px" }}>
+                    <div className="small">Rodadas</div>
+                    <div className="kpi">{kpis.qtdRodadas}</div>
+                    <div className="small">Rodadas registradas no período</div>
+                  </div>
+                  <div className="card" style={{ flex: "1 1 220px" }}>
+                    <div className="small">Distribuído em premiações</div>
+                    <div className="kpi">{formatMoneyBRL(kpis.totalDistribuido)}</div>
+                    <div className="small">Soma do prizepool da temporada</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            <RankingTable
+              rows={rows}
+              onPlayerClickTo={(id) =>
+                `/jogador/${id}?ano=${encodeURIComponent(ano)}&temporada=${encodeURIComponent(temporada)}`
+              }
+              mobileDetails={true}
+              hideEliminado={false}
             />
           </div>
-        </div>
-      </div>
-
-      {/* ✅ Informações da Temporada (expansível) */}
-      <div className="card" style={{ marginTop: 12 }}>
-        <button
-          type="button"
-          className={"filterToggle " + (infoOpen ? "isOpen" : "")}
-          aria-expanded={infoOpen}
-          onClick={() => setInfoOpen(v => !v)}
-        >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, width: "100%" }}>
-            <div style={{ fontWeight: 900 }}>Informações da Temporada</div>
-            <div className="filterChevron" aria-hidden="true">
-              ▼
-            </div>
-          </div>
-        </button>
-
-        <div className={"filterPanel " + (infoOpen ? "open" : "")}>
-          <div className="filterPanelInner">
-            <div className="row">
-              <div className="card" style={{ flex: "1 1 220px" }}>
-                <div className="small">Jogadores (no ranking)</div>
-                <div className="kpi">{kpis.jogadores}</div>
-                <div className="small">Considera o filtro selecionado</div>
-              </div>
-              <div className="card" style={{ flex: "1 1 220px" }}>
-                <div className="small">Rodadas</div>
-                <div className="kpi">{kpis.qtdRodadas}</div>
-                <div className="small">Rodadas registradas no período</div>
-              </div>
-              <div className="card" style={{ flex: "1 1 220px" }}>
-                <div className="small">Distribuído em premiações</div>
-                <div className="kpi">{formatMoneyBRL(kpis.totalDistribuido)}</div>
-                <div className="small">Soma do prizepool da temporada</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ marginTop: 12 }}>
-        {loading ? (
-          <div className="card">Carregando…</div>
-        ) : (
-          <RankingTable
-            rows={rows}
-            onPlayerClickTo={(id) =>
-              `/jogador/${id}?ano=${encodeURIComponent(ano)}&temporada=${encodeURIComponent(temporada)}`
-            }
-            mobileDetails={true}
-            hideEliminado={false}
-          />
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }

@@ -786,10 +786,14 @@ a:hover{ color: rgba(248,69,1,.95); }
 /* ===== Ajustes específicos de mobile ===== */
 @media (max-width: 720px){
   .filterToggle{
-    padding: 14px 16px;
+    padding: 10px 14px;
   }
 
   .filterToggle > div > div:first-child{
     font-size: 14px;          /* reduz fonte no mobile */
+    line-height: 1.15;     /* reduz espaço vertical */
+  }
+  .filterToggle > div{
+    gap: 8px;               /* menos espaço entre texto e seta */
   }
 }

@@ -2,8 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ "main", "dev" ]
-  workflow_dispatch:
+    branches: ["main"]
 
 permissions:
   contents: read
@@ -12,7 +11,7 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -25,36 +24,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          
+
       - name: Install
         run: npm install
 
-      - name: Build (main -> /)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          VITE_BASE=/poker-uplife/ npm run build
-          mkdir -p dist_out
-          cp -r dist/* dist_out/
-
-      - name: Build (dev -> /dev/)
-        if: github.ref == 'refs/heads/dev'
-        run: |
-          VITE_BASE=/poker-uplife/dev/ npm run build
-          mkdir -p dist_out/dev
-          cp -r dist/* dist_out/dev/
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist_out
+          path: dist
 
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     needs: build
+    runs-on: ubuntu-latest
     steps:
       - name: Deploy to GitHub Pages
-        id: deployment
         uses: actions/deploy-pages@v4

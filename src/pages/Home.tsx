@@ -24,6 +24,9 @@ export function Home() {
   // ✅ filtro minimizado/expandido
   const [filterOpen, setFilterOpen] = useState<boolean>(false);
 
+  // ✅ novo: informações da temporada minimizado/expandido
+  const [infoOpen, setInfoOpen] = useState<boolean>(true);
+
   useEffect(() => {
     (async () => {
       try {
@@ -140,21 +143,42 @@ export function Home() {
         </div>
       </div>
 
-      <div className="row" style={{ marginTop: 12 }}>
-        <div className="card" style={{ flex: "1 1 220px" }}>
-          <div className="small">Jogadores (no ranking)</div>
-          <div className="kpi">{kpis.jogadores}</div>
-          <div className="small">Considera o filtro selecionado</div>
-        </div>
-        <div className="card" style={{ flex: "1 1 220px" }}>
-          <div className="small">Rodadas</div>
-          <div className="kpi">{kpis.qtdRodadas}</div>
-          <div className="small">Rodadas registradas no período</div>
-        </div>
-        <div className="card" style={{ flex: "1 1 220px" }}>
-          <div className="small">Distribuído em premiações</div>
-          <div className="kpi">{formatMoneyBRL(kpis.totalDistribuido)}</div>
-          <div className="small">Soma do prizepool da temporada</div>
+      {/* ✅ Informações da Temporada (expansível) */}
+      <div className="card" style={{ marginTop: 12 }}>
+        <button
+          type="button"
+          className={"filterToggle " + (infoOpen ? "isOpen" : "")}
+          aria-expanded={infoOpen}
+          onClick={() => setInfoOpen(v => !v)}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, width: "100%" }}>
+            <div style={{ fontWeight: 900 }}>Informações da Temporada</div>
+            <div className="filterChevron" aria-hidden="true">
+              ▼
+            </div>
+          </div>
+        </button>
+
+        <div className={"filterPanel " + (infoOpen ? "open" : "")}>
+          <div className="filterPanelInner">
+            <div className="row">
+              <div className="card" style={{ flex: "1 1 220px" }}>
+                <div className="small">Jogadores (no ranking)</div>
+                <div className="kpi">{kpis.jogadores}</div>
+                <div className="small">Considera o filtro selecionado</div>
+              </div>
+              <div className="card" style={{ flex: "1 1 220px" }}>
+                <div className="small">Rodadas</div>
+                <div className="kpi">{kpis.qtdRodadas}</div>
+                <div className="small">Rodadas registradas no período</div>
+              </div>
+              <div className="card" style={{ flex: "1 1 220px" }}>
+                <div className="small">Distribuído em premiações</div>
+                <div className="kpi">{formatMoneyBRL(kpis.totalDistribuido)}</div>
+                <div className="small">Soma do prizepool da temporada</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

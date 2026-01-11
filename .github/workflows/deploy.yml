@@ -32,14 +32,18 @@ jobs:
       - name: Build (main -> /)
         if: github.ref == 'refs/heads/main'
         run: |
-          VITE_BASE=/poker-uplife/ npm run build
+          VITE_BASE=/poker-uplife/
+          VITE_API_BASE=https://script.google.com/macros/s/AKfycbw6hNdFsHEunPYTmu0JvoFu1lKgjVFKk6yun9MBaN1qX9iHWaOwTPNpfziVaI_95ePA/exec
+          npm run build
           mkdir -p dist_out
           cp -r dist/* dist_out/
 
       - name: Build (dev -> /dev/)
         if: github.ref == 'refs/heads/dev'
         run: |
-          VITE_BASE=/poker-uplife/dev/ npm run build
+          VITE_BASE=/poker-uplife/dev/
+          VITE_API_BASE=https://script.google.com/macros/s/AKfycbw6hNdFsHEunPYTmu0JvoFu1lKgjVFKk6yun9MBaN1qX9iHWaOwTPNpfziVaI_95ePA/exec
+          npm run build
           mkdir -p dist_out/dev
           cp -r dist/* dist_out/dev/
 

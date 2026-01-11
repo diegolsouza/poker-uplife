@@ -5,6 +5,13 @@ import { SeasonFilter } from "../components/SeasonFilter";
 import { RankingTable } from "../components/RankingTable";
 import { aggregateRankings, aggregateRodadas, formatMoneyBRL, sum } from "../utils/aggregate";
 
+function filterLabel(ano: string, temporada: string) {
+  if (ano === "ALL" && temporada === "ALL") return "Filtrando por: Todos os anos • Todas as temporadas";
+  if (ano === "ALL" && temporada !== "ALL") return `Filtrando por: Todos os anos • ${temporada}`;
+  if (ano !== "ALL" && temporada === "ALL") return `Filtrando por: ${ano} • Todas as temporadas`;
+  return `Filtrando por: ${ano} • ${temporada}`;
+}
+
 export function Home() {
   const [options, setOptions] = useState<AnoTemporada[]>([]);
   const [rodadas, setRodadas] = useState<Rodada[]>([]);
@@ -14,7 +21,7 @@ export function Home() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ novo: filtro minimizado/expandido
+  // ✅ filtro minimizado/expandido
   const [filterOpen, setFilterOpen] = useState<boolean>(false);
 
   useEffect(() => {
@@ -24,9 +31,12 @@ export function Home() {
         const [opts, rods] = await Promise.all([getAnosTemporadas(), getRodadas()]);
         setOptions(opts);
         setRodadas(rods);
+
         // default: mais recente (maior ano, depois maior temporada)
         if (opts.length) {
-          const sorted = [...opts].sort((a,b) => (a.ano === b.ano ? a.temporada.localeCompare(b.temporada) : a.ano.localeCompare(b.ano)));
+          const sorted = [...opts].sort((a, b) =>
+            a.ano === b.ano ? a.temporada.localeCompare(b.temporada) : a.ano.localeCompare(b.ano)
+          );
           const last = sorted[sorted.length - 1];
           setAno(last.ano);
           setTemporada(last.temporada);
@@ -50,6 +60,7 @@ export function Home() {
         // Temporada única
         if (temporada !== "ALL") {
           const r = await getRankingTemporada(ano === "ALL" ? options[0].ano : ano, temporada);
+
           // se ano=ALL e temporada específica: soma a temporada em todos os anos (raro, mas suportado)
           if (ano === "ALL") {
             const years = Array.from(new Set(options.filter(o => o.temporada === temporada).map(o => o.ano)));
@@ -84,64 +95,75 @@ export function Home() {
 
   return (
     <div className="container">
-      {error && <div className="card" style={{borderColor:"rgba(255,77,77,.35)"}}><b>Erro:</b> {error}</div>}
+      {error && (
+        <div className="card" style={{ borderColor: "rgba(255,77,77,.35)" }}>
+          <b>Erro:</b> {error}
+        </div>
+      )}
 
       {/* ✅ Filtro minimizado/expandido */}
-      <div
-        className="card"
-        style={{ cursor: "pointer" }}
-        role="button"
-        tabIndex={0}
-        aria-expanded={filterOpen}
-        onClick={() => setFilterOpen(v => !v)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") setFilterOpen(v => !v);
-        }}
-      >
-        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", gap:12}}>
-          <div style={{fontWeight: 900}}>Filtrar por temporada</div>
-          <div style={{opacity:.8, fontSize: 18, fontWeight: 900}} aria-hidden="true">
-            {filterOpen ? "▲" : "▼"}
+      <div className="card">
+        <button
+          type="button"
+          className="filterToggle"
+          aria-expanded={filterOpen}
+          onClick={() => setFilterOpen(v => !v)}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, width: "100%" }}>
+            <div style={{ fontWeight: 900 }}>{filterLabel(ano, temporada)}</div>
+            <div style={{ opacity: 0.85, fontSize: 18, fontWeight: 900 }} aria-hidden="true">
+              {filterOpen ? "▲" : "▼"}
+            </div>
           </div>
-        </div>
+        </button>
 
         {filterOpen && (
-          <div style={{marginTop:12}}>
+          <div
+            style={{ marginTop: 12 }}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
             <SeasonFilter
               options={options}
               ano={ano}
               temporada={temporada}
-              onChange={(n) => { setAno(n.ano); setTemporada(n.temporada); }}
+              onChange={(n) => {
+                setAno(n.ano);
+                setTemporada(n.temporada);
+              }}
             />
           </div>
         )}
       </div>
 
-      <div className="row" style={{marginTop:12}}>
-        <div className="card" style={{flex:"1 1 220px"}}>
+      <div className="row" style={{ marginTop: 12 }}>
+        <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Jogadores (no ranking)</div>
           <div className="kpi">{kpis.jogadores}</div>
           <div className="small">Considera o filtro selecionado</div>
         </div>
-        <div className="card" style={{flex:"1 1 220px"}}>
+        <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Rodadas</div>
           <div className="kpi">{kpis.qtdRodadas}</div>
           <div className="small">Rodadas registradas no período</div>
         </div>
-        <div className="card" style={{flex:"1 1 220px"}}>
+        <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Distribuído em premiações</div>
           <div className="kpi">{formatMoneyBRL(kpis.totalDistribuido)}</div>
           <div className="small">Soma do prizepool da temporada</div>
         </div>
       </div>
 
-      <div style={{marginTop:12}}>
+      <div style={{ marginTop: 12 }}>
         {loading ? (
           <div className="card">Carregando…</div>
         ) : (
           <RankingTable
             rows={rows}
-            onPlayerClickTo={(id) => `/jogador/${id}?ano=${encodeURIComponent(ano)}&temporada=${encodeURIComponent(temporada)}`}
+            onPlayerClickTo={(id) =>
+              `/jogador/${id}?ano=${encodeURIComponent(ano)}&temporada=${encodeURIComponent(temporada)}`
+            }
             mobileDetails={true}
             hideEliminado={false}
           />

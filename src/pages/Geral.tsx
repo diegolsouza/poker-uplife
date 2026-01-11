@@ -223,7 +223,7 @@ export function Geral() {
                     )}
                   </div>
                 </div>,
-                <div className="card" "eficiencia">
+                <div className="card" key="eficiencia">
                   <div className="small">Maior Eficiência de Pontos</div>
                   <div className="kpi">{stats.maiorEficienciaPontos?.nome ?? "-"}</div>
                   <div className="small">

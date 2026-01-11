@@ -12,6 +12,26 @@ export function formatPct(v: number): string {
   return (v || 0).toLocaleString("pt-BR", { style: "percent", maximumFractionDigits: 1 });
 }
 
+
+export function sortRankingRows(input: RankingRow[]): RankingRow[] {
+  const rows = [...input];
+  rows.sort((a,b) => {
+    // ordenar por pontos desc, desempate por p1, p2... (desc).
+    // Se ainda empatar: desempate por (rebuy + add-on) ASC (menor melhor).
+    const keys: (keyof RankingRow)[] = ["pontos","p1","p2","p3","p4","p5","p6","p7","p8","p9","podios","participacoes"];
+    for (const k of keys) {
+      const dv = (b[k] as unknown as number) - (a[k] as unknown as number);
+      if (dv !== 0) return dv;
+    }
+    const invA = (a.rebuy_total || 0) + (a.addon_total || 0);
+    const invB = (b.rebuy_total || 0) + (b.addon_total || 0);
+    const dvInv = invA - invB; // menor melhor
+    if (dvInv !== 0) return dvInv;
+    return a.nome.localeCompare(b.nome);
+  });
+  return rows;
+}
+
 export function aggregateRankings(rankings: RankingRow[][]): RankingRow[] {
   const map = new Map<string, RankingRow>();
 
@@ -36,17 +56,9 @@ export function aggregateRankings(rankings: RankingRow[][]): RankingRow[] {
     }
   }
 
-  // ordenar por pontos desc, desempate por p1, p2...
+  // ordenar por pontos desc, desempate por p1, p2... e por (rebuy+add-on) ASC
   const rows = Array.from(map.values());
-  rows.sort((a,b) => {
-    const keys: (keyof RankingRow)[] = ["pontos","p1","p2","p3","p4","p5","p6","p7","p8","p9","podios","participacoes"];
-    for (const k of keys) {
-      const dv = (b[k] as unknown as number) - (a[k] as unknown as number);
-      if (dv !== 0) return dv;
-    }
-    return a.nome.localeCompare(b.nome);
-  });
-  return rows;
+  return sortRankingRows(rows);
 }
 
 export function aggregateRodadas(rodadas: Rodada[], ano: string, temporada: string): Rodada[] {

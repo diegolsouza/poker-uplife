@@ -884,3 +884,24 @@ a:hover{ color: rgba(248,69,1,.95); }
   outline: none;
   box-shadow: 0 0 0 4px var(--focus);
 }
+
+/* ===== Filtro (Ano/Temporada) + botão Atualizar na mesma linha ===== */
+.seasonFilterWithApply{
+  display: flex;
+  align-items: flex-end; /* alinha com o dropdown */
+  gap: 10px;
+}
+
+.seasonFilterWithApply > *:first-child{
+  flex: 1 1 auto; /* SeasonFilter ocupa o espaço e o botão fica ao lado */
+}
+
+/* Mobile: se faltar espaço, quebra a linha e o botão vai para baixo sem estragar */
+@media (max-width: 720px){
+  .seasonFilterWithApply{
+    flex-wrap: wrap;
+  }
+  .seasonFilterWithApply .applyBtn{
+    width: 100%;
+  }
+}

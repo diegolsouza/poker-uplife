@@ -842,3 +842,50 @@ a:hover{ color: rgba(248,69,1,.95); }
 .filterPanel .row .card{
   box-shadow: none; /* evita sombra duplicada dentro do card pai */
 }
+
+/* ===== Tela cheia de loading (Temporada) ===== */
+html, body, #root{
+  height: 100%;
+  min-height: 100%;
+  background: var(--bg);
+}
+
+body{
+  min-height: 100vh;
+}
+
+.container{
+  min-height: 100vh;
+}
+
+.pageLoader{
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  padding: 24px;
+
+  background:
+    radial-gradient(1200px 800px at 20% 0%, rgba(248,69,1,.14), transparent 55%),
+    radial-gradient(1000px 700px at 90% 10%, rgba(229,230,234,.10), transparent 55%),
+    linear-gradient(180deg, rgba(20,50,61,1), rgba(10,26,32,1));
+}
+
+.spinner{
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 4px solid rgba(229,230,234,.18);
+  border-top-color: #f84501;
+  animation: spin .9s linear infinite;
+}
+
+.loaderText{
+  color: rgba(229,230,234,.78);
+  font-weight: 900;
+  letter-spacing: .2px;
+}
+
+@keyframes spin{
+  to{ transform: rotate(360deg); }
+}

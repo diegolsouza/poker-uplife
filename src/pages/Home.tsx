@@ -100,6 +100,16 @@ export function Home() {
     return { qtdRodadas, totalDistribuido, jogadores };
   }, [rodadasFiltradas, rows]);
 
+  // ✅ enquanto carrega (inclusive ao trocar filtro), mostra apenas animação
+  if (loading) {
+    return (
+      <div className="pageLoader">
+        <div className="spinner" aria-label="Carregando" />
+        <div className="loaderText">Carregando…</div>
+      </div>
+    );
+  }
+
   return (
     <div className="container">
       {error && (

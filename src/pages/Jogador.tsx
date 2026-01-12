@@ -4,6 +4,17 @@ import { getAnosTemporadas, getJogador, getRankingTemporada } from "../api/endpo
 import type { AnoTemporada, RankingRow } from "../types";
 import { formatMoneyBRL, formatPct } from "../utils/aggregate";
 
+function formatDateBR(input: string | null | undefined) {
+  if (!input) return "—";
+  const d = new Date(input);
+  if (Number.isNaN(d.getTime())) return String(input);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+
 /**
  * Critério de "Eficiência de Pontos" (opção A combinada):
  * eficiência = pontos / (participações + rebuys)
@@ -86,9 +97,7 @@ export function Jogador() {
 
   // (Opcional) se chegar com ?ano=...&temporada=..., usa para a chamada do backend
   // Isso evita "Jogador não encontrado" caso a API não suporte ALL/ALL em algumas versões.
-  const urlAno = sp.get("ano") ?? "ALL";
-  const urlTemporada = sp.get("temporada") ?? "ALL";
-
+  
   const [options, setOptions] = useState<AnoTemporada[]>([]);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -119,12 +128,11 @@ export function Jogador() {
         setLoading(true);
         setError(null);
 
-        // tenta com os params da URL (se existirem), senão ALL/ALL
-        const r = await getJogador(urlAno, urlTemporada, id);
+        // ✅ Perfil sempre carrega histórico completo (ALL/ALL)
+        const r = await getJogador("ALL", "ALL", id);
 
         // alguns backends retornam { data: ... }
         const payload = (r && (r.data ?? r)) ?? null;
-
         setData(payload);
       } catch (e: any) {
         setError(e?.message ?? "Erro ao carregar jogador");
@@ -132,7 +140,7 @@ export function Jogador() {
         setLoading(false);
       }
     })();
-  }, [id, urlAno, urlTemporada]);
+  }, [id]);
 
   const historico = useMemo(() => (data?.historico ?? []).filter((h: any) => h?.participou), [data]);
 
@@ -170,6 +178,7 @@ export function Jogador() {
     const bySeason = new Map<string, { ano: string; temporada: string; pontos: number; part: number; rebuys: number }>();
 
     for (const h of historico as any[]) {
+      if (!h?.ano || !h?.temporada) continue;
       const key = seasonKey(h.ano, h.temporada);
       const cur = bySeason.get(key) ?? { ano: h.ano, temporada: h.temporada, pontos: 0, part: 0, rebuys: 0 };
       cur.pontos += h.pontos || 0;
@@ -188,7 +197,7 @@ export function Jogador() {
 
   const seasonsPlayed = useMemo(() => {
     const set = new Set<string>();
-    for (const h of historico as any[]) set.add(seasonKey(h.ano, h.temporada));
+    for (const h of historico as any[]) { if (h?.ano && h?.temporada) set.add(seasonKey(h.ano, h.temporada)); }
     return sortSeasonKeys(Array.from(set));
   }, [historico]);
 
@@ -281,13 +290,13 @@ export function Jogador() {
 
             <div style={{ marginTop: 10, display: "flex", gap: 12, flexWrap: "wrap" }}>
               <div className="chip">
-                <b>Joga desde:</b> {profile.jogadorDesde ?? "—"}
+                <b>Joga desde:</b> {formatDateBR(profile.jogadorDesde)}
               </div>
               <div className="chip">
                 <b>Participações:</b> {profile.totals.participacoes}
               </div>
               <div className="chip">
-                <b>Melhor campanha:</b> {bestCampaign ? `${bestCampaign.ano}-${bestCampaign.temporada}` : "—"}
+                <b>Melhor campanha:</b> {bestCampaign && bestCampaign.ano && bestCampaign.temporada ? `${bestCampaign.ano}-${bestCampaign.temporada}` : "—"}
               </div>
             </div>
           </div>

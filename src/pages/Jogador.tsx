@@ -46,6 +46,15 @@ function sortSeasonsDesc(keys: string[]) {
     return parseSeason(bt) - parseSeason(at);
   });
 }
+function formatDateBR(input?: string) {
+  if (!input) return "—";
+  const d = new Date(input);
+  if (Number.isNaN(d.getTime())) return "—";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
 // Empate de posição (mesmo critério do RankingTable: todos os campos numéricos iguais)
 function isTieRow(a: any, b: any): boolean {
   const keys = [
@@ -347,7 +356,7 @@ export function Jogador() {
 
             <div style={{ marginTop: 10, display: "flex", gap: 12, flexWrap: "wrap" }}>
               <div className="chip">
-                <b>Joga desde:</b> {formatDateBR(jogaDesde)}
+                <b>Joga desde:</b> {formatDateBR(allData?.jogador?.joga_desde)}
               </div>
               <div className="chip">
                 <b>Participações:</b> {participacoes}
@@ -566,3 +575,4 @@ export function Jogador() {
     </div>
   );
 }
+

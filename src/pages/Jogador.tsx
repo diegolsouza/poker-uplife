@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getJogador } from "../api/endpoints";
+import { getJogador, getRankingGeral } from "../api/endpoints";
 import { formatMoneyBRL, formatPct } from "../utils/aggregate";
 
 /**
@@ -46,6 +46,34 @@ function sortSeasonsDesc(keys: string[]) {
     return parseSeason(bt) - parseSeason(at);
   });
 }
+// Empate de posição (mesmo critério do RankingTable: todos os campos numéricos iguais)
+function isTieRow(a: any, b: any): boolean {
+  const keys = [
+    "pontos",
+    "p1","p2","p3","p4","p5","p6","p7","p8","p9",
+    "serie_b",
+    "fora_mesa_final",
+    "podios",
+    "melhor_mao",
+    "rebuy_total",
+    "addon_total",
+    "participacoes",
+  ];
+  for (const k of keys) {
+    if (Number(a?.[k] ?? 0) !== Number(b?.[k] ?? 0)) return false;
+  }
+  return true;
+}
+
+function computeDisplayRanks(rows: any[]): number[] {
+  const ranks: number[] = [];
+  for (let i = 0; i < rows.length; i++) {
+    if (i > 0 && isTieRow(rows[i], rows[i - 1])) ranks.push(ranks[i - 1]);
+    else ranks.push(i + 1);
+  }
+  return ranks;
+}
+
 
 export function Jogador() {
   const { id = "" } = useParams();
@@ -59,6 +87,9 @@ export function Jogador() {
 
   // resposta do ALL/ALL (api_public_jogador_all)
   const [allData, setAllData] = useState<any>(null);
+
+  const [geralPos, setGeralPos] = useState<number | null>(null);
+  const [geralPontos, setGeralPontos] = useState<number>(0);
 
   // histórico rodada-a-rodada das últimas 2 temporadas (api_public_jogador_season)
   const [lastRounds, setLastRounds] = useState<any[]>([]);
@@ -84,6 +115,29 @@ export function Jogador() {
       }
     })();
   }, [id]);
+
+  // Ranking geral: posição do jogador no ranking (considera empates)
+  useEffect(() => {
+    if (!id) return;
+    (async () => {
+      try {
+        const rows = await getRankingGeral();
+        const ranks = computeDisplayRanks(rows);
+        const idx = rows.findIndex((r: any) => r.id_jogador === id);
+        if (idx >= 0) {
+          setGeralPos(ranks[idx]);
+          setGeralPontos(Number(rows[idx]?.pontos ?? 0));
+        } else {
+          setGeralPos(null);
+          setGeralPontos(0);
+        }
+      } catch {
+        setGeralPos(null);
+        setGeralPontos(0);
+      }
+    })();
+  }, [id]);
+
 
   const resumo = useMemo(() => (allData?.resumo_por_temporada ?? []) as any[], [allData]);
   const totalGeral = useMemo(() => allData?.total_geral ?? null, [allData]);
@@ -138,6 +192,17 @@ export function Jogador() {
   }, [resumo]);
 
   const taxaVitoria = participacoes ? vitorias / participacoes : 0;
+
+
+  const totalRebuys = useMemo(() => {
+    const has = resumo.some(s => s.rebuy_total != null);
+    if (!has) return 0;
+    return resumo.reduce((acc, s) => acc + Number(s.rebuy_total || 0), 0);
+  }, [resumo]);
+
+  const taxaPodio = participacoes ? (podios / participacoes) : 0;
+
+  const aproveitamento = participacoes ? (geralPontos / participacoes) : 0;
 
   // Financeiro (ALL/ALL)
   const totalPago = Number(totalGeral?.total_pagar ?? 0);
@@ -293,18 +358,29 @@ export function Jogador() {
         </div>
       </div>
 
-      {/* Bloco 2: desempenho */}
+            {/* Bloco 2: desempenho */}
       <div className="row" style={{ marginTop: 12 }}>
         <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Pódios (1º–5º)</div>
-          <div className="kpi">{podios}</div>
+          <div className="kpi" style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+            <span>{podios}</span>
+            <span className="small" style={{ opacity: 0.9 }}>({formatPct(taxaPodio)})</span>
+          </div>
           <div className="small">Em {participacoes} participações</div>
         </div>
+
+        <div className="card" style={{ flex: "1 1 220px" }}>
+          <div className="small">Rebuys (total)</div>
+          <div className="kpi">{totalRebuys}</div>
+          <div className="small">Somando todas as temporadas</div>
+        </div>
+
         <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Melhores mãos</div>
           <div className="kpi">{melhoresMaos}</div>
           <div className="small">Total histórico</div>
         </div>
+
         <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Taxa de vitória</div>
           <div className="kpi">{formatPct(taxaVitoria)}</div>
@@ -312,7 +388,22 @@ export function Jogador() {
         </div>
       </div>
 
-      {/* Bloco 3: financeiro (ALL/ALL) */}
+      {/* Bloco 2B: ranking geral */}
+      <div className="row" style={{ marginTop: 12 }}>
+        <div className="card" style={{ flex: "1 1 220px" }}>
+          <div className="small">Ranking geral</div>
+          <div className="kpi">{geralPos != null ? `${geralPos}º` : "—"}</div>
+          <div className="small">Posição no ranking geral</div>
+        </div>
+
+        <div className="card" style={{ flex: "1 1 220px" }}>
+          <div className="small">Aproveitamento</div>
+          <div className="kpi">{aproveitamento.toFixed(2)}</div>
+          <div className="small">Pontos (geral) ÷ participações</div>
+        </div>
+      </div>
+
+{/* Bloco 3: financeiro (ALL/ALL) */}
       <div className="row" style={{ marginTop: 12 }}>
         <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Total pago</div>

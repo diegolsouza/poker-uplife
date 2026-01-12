@@ -1,8 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getAnosTemporadas, getJogador, getRankingTemporada } from "../api/endpoints";
-import type { AnoTemporada, RankingRow } from "../types";
+import { getJogador } from "../api/endpoints";
 import { formatMoneyBRL, formatPct } from "../utils/aggregate";
+
+/**
+ * Eficiência de Pontos (opção A):
+ * eficiência = pontos / (participações + rebuys)
+ *
+ * OBS: O endpoint "jogador" em modo ALL/ALL (api_public_jogador_all) não retorna rebuys por temporada.
+ * Então, no resumo por temporada, usamos denom = participações (rebuys=0) para não travar a UI.
+ * Na tabela rodada-a-rodada (últimas 2 temporadas) usamos o endpoint de temporada específica,
+ * que traz rebuy/addon e pontos por rodada.
+ */
+function calcEficienciaApprox(pontos: number, participacoes: number) {
+  const denom = (participacoes || 0);
+  return denom > 0 ? (pontos || 0) / denom : 0;
+}
 
 function formatDateBR(input: string | null | undefined) {
   if (!input) return "—";
@@ -14,271 +27,207 @@ function formatDateBR(input: string | null | undefined) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-/**
- * Eficiência de Pontos:
- * eficiência = pontos / (participações + rebuys)
- * - addon NÃO entra no denominador
- * - cada rebuy equivale a 1 participação (no denominador)
- */
-function calcEficiencia(pontos: number, participacoes: number, rebuys: number) {
-  const denom = (participacoes || 0) + (rebuys || 0);
-  return denom > 0 ? (pontos || 0) / denom : 0;
-}
-
-function minDateISO(dates: string[]): string | null {
-  const valid = dates.filter(Boolean).sort();
-  return valid.length ? valid[0] : null;
-}
-
 function seasonKey(ano: string, temporada: string) {
   return `${ano}-${temporada}`;
 }
 
 function parseSeason(temporada: string) {
-  const m = temporada.match(/(\d+)/);
+  const m = String(temporada || "").match(/(\d+)/);
   return m ? Number(m[1]) : 0;
 }
 
-function sortSeasonKeys(keys: string[]) {
+function sortSeasonsDesc(keys: string[]) {
   return [...keys].sort((a, b) => {
     const [ay, at] = a.split("-");
     const [by, bt] = b.split("-");
     const ya = Number(ay);
     const yb = Number(by);
-    if (ya !== yb) return ya - yb;
-    return parseSeason(at) - parseSeason(bt);
+    if (ya !== yb) return yb - ya;
+    return parseSeason(bt) - parseSeason(at);
   });
 }
 
-// Empate de posição no ranking (mesmo critério usado no RankingTable)
-function isTieRow(a: RankingRow, b: RankingRow): boolean {
-  const keys: (keyof RankingRow)[] = [
-    "pontos",
-    "p1","p2","p3","p4","p5","p6","p7","p8","p9",
-    "serie_b",
-    "fora_mesa_final",
-    "podios",
-    "melhor_mao",
-    "rebuy_total",
-    "addon_total",
-    "participacoes",
-  ];
-  for (const k of keys) {
-    // @ts-expect-error numeric compare
-    if ((a[k] || 0) !== (b[k] || 0)) return false;
-  }
-  return true;
-}
-
-function computeDisplayRanks(rows: RankingRow[]): number[] {
-  const ranks: number[] = [];
-  for (let i = 0; i < rows.length; i++) {
-    if (i > 0 && isTieRow(rows[i], rows[i - 1])) ranks.push(ranks[i - 1]);
-    else ranks.push(i + 1);
-  }
-  return ranks;
-}
-
-type AnyJogadorPayload = {
-  jogador?: { id_jogador: string; nome: string };
-  historico?: any[];
-};
-
 export function Jogador() {
-  const params = useParams();
-  // ✅ robusto: funciona mesmo se a rota usar outro nome de param
-  const id = (params as any).id ?? (params as any).id_jogador ?? (params as any).playerId ?? "";
+  const { id = "" } = useParams();
 
-  const [options, setOptions] = useState<AnoTemporada[]>([]);
-  const [data, setData] = useState<AnyJogadorPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Base URL do GitHub Pages (ex.: /poker-uplife/)
   const baseUrl = import.meta.env.BASE_URL || "/";
-
-  // ✅ Foto do jogador e fallback padrão
   const fotoJogador = `${baseUrl}players/${id}.png`;
   const fotoPadrao = `${baseUrl}players/default.png`;
 
-  // Carrega lista de temporadas
-  useEffect(() => {
-    (async () => {
-      try {
-        const opts = await getAnosTemporadas();
-        setOptions(opts);
-      } catch {
-        setOptions([]);
-      }
-    })();
-  }, []);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Carrega histórico COMPLETO (todos os anos/temporadas)
+  // resposta do ALL/ALL (api_public_jogador_all)
+  const [allData, setAllData] = useState<any>(null);
+
+  // histórico rodada-a-rodada das últimas 2 temporadas (api_public_jogador_season)
+  const [lastRounds, setLastRounds] = useState<any[]>([]);
+  const [roundsLoading, setRoundsLoading] = useState(false);
+
+  // 1) Carrega o "resumo geral" (todos os anos/temporadas) – rápido
   useEffect(() => {
     if (!id) return;
-
     (async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // 1) Se o backend suportar ALL/ALL, ótimo.
-        // 2) Se não suportar (historico vazio), a gente agrega no frontend chamando temporada por temporada.
-        let payload: AnyJogadorPayload | null = null;
+        // IMPORTANTÍSSIMO: temporada=ALL aciona api_public_jogador_all (todas as temporadas)
+        const r = await getJogador("ALL", "ALL", id);
+        const payload = (r && (r.data ?? r)) ?? null;
 
-        try {
-          const r: any = await getJogador("ALL", "ALL", id);
-          payload = (r && (r.data ?? r)) ?? null;
-        } catch {
-          payload = null;
-        }
-
-        const hist0 = (payload?.historico ?? []).filter((h) => h?.participou);
-
-        if (hist0.length) {
-          setData({ jogador: payload?.jogador, historico: hist0 });
-          return;
-        }
-
-        // Fallback: agrega via lista de temporadas
-        if (!options.length) {
-          // Sem opções, não dá pra fan-out
-          setData({ jogador: payload?.jogador, historico: hist0 });
-          return;
-        }
-
-        const pairs = options; // todas as temporadas conhecidas
-        const responses = await Promise.all(
-          pairs.map((p) =>
-            getJogador(p.ano, p.temporada, id)
-              .then((r: any) => (r && (r.data ?? r)) ?? null)
-              .catch(() => null)
-          )
-        );
-
-        const jogador = responses.find((r) => r?.jogador)?.jogador ?? payload?.jogador;
-        const historico = responses
-          .flatMap((r) => (r?.historico ?? []))
-          .filter((h) => h?.participou);
-
-        setData({ jogador, historico });
+        setAllData(payload);
       } catch (e: any) {
         setError(e?.message ?? "Erro ao carregar jogador");
       } finally {
         setLoading(false);
       }
     })();
-  }, [id, options]);
+  }, [id]);
 
-  const historico = useMemo(() => (data?.historico ?? []).filter((h) => h?.participou), [data]);
-  const jogadorNome = data?.jogador?.nome ?? (historico[0]?.nome ?? id) ?? "Jogador";
+  const resumo = useMemo(() => (allData?.resumo_por_temporada ?? []) as any[], [allData]);
+  const totalGeral = useMemo(() => allData?.total_geral ?? null, [allData]);
 
-  const profile = useMemo(() => {
-    const participou = historico;
-    const jogadorDesde = minDateISO(participou.map((h: any) => h.data));
+  // Nome / ID
+  const jogadorNome = useMemo(() => allData?.jogador?.nome ?? id ?? "Jogador", [allData, id]);
 
-    const totals = participou.reduce(
-      (acc: any, h: any) => {
-        acc.participacoes += 1;
-        acc.podios += h.colocacao >= 1 && h.colocacao <= 5 ? 1 : 0;
-        acc.vitorias += h.colocacao === 1 ? 1 : 0;
-        acc.melhorMao += h.melhor_mao ? 1 : 0;
-        acc.rebuy += h.rebuy || 0;
-        acc.addon += h.addon || 0;
-        // financeiro: depende do backend. Tentamos os campos mais prováveis.
-        acc.pagou += (h.pagou ?? h.valor_pix ?? 0);
-        acc.recebeu += (h.recebeu ?? h.premio ?? 0);
-        acc.pontos += h.pontos || 0;
-        return acc;
-      },
-      { participacoes: 0, podios: 0, vitorias: 0, melhorMao: 0, rebuy: 0, addon: 0, pagou: 0, recebeu: 0, pontos: 0 }
-    );
-
-    const saldo = totals.recebeu - totals.pagou;
-    const taxaVitoria = totals.participacoes ? totals.vitorias / totals.participacoes : 0;
-    const eficienciaGeral = calcEficiencia(totals.pontos, totals.participacoes, totals.rebuy);
-
-    return { jogadorDesde, totals, saldo, taxaVitoria, eficienciaGeral };
-  }, [historico]);
-
-  // Melhor campanha: temporada com maior eficiência
+  // Melhor campanha (aprox. no ALL/ALL): maior (pontos/participações) no resumo
   const bestCampaign = useMemo(() => {
-    const bySeason = new Map<string, { ano: string; temporada: string; pontos: number; part: number; rebuys: number }>();
-
-    for (const h of historico as any[]) {
-      if (!h?.ano || !h?.temporada) continue;
-      const key = seasonKey(h.ano, h.temporada);
-      const cur = bySeason.get(key) ?? { ano: h.ano, temporada: h.temporada, pontos: 0, part: 0, rebuys: 0 };
-      cur.pontos += h.pontos || 0;
-      cur.part += 1;
-      cur.rebuys += h.rebuy || 0;
-      bySeason.set(key, cur);
-    }
-
-    let best: { ano: string; temporada: string; eficiencia: number } | null = null;
-    for (const v of bySeason.values()) {
-      const e = calcEficiencia(v.pontos, v.part, v.rebuys);
-      if (!best || e > best.eficiencia) best = { ano: v.ano, temporada: v.temporada, eficiencia: e };
+    if (!resumo.length) return null;
+    let best: { ano: string; temporada: string; eff: number } | null = null;
+    for (const s of resumo) {
+      const ano = String(s.ano || "").trim();
+      const temporada = String(s.temporada || "").trim();
+      if (!ano || !temporada) continue;
+      const eff = calcEficienciaApprox(Number(s.pontos || 0), Number(s.participacoes || 0));
+      if (!best || eff > best.eff) best = { ano, temporada, eff };
     }
     return best;
-  }, [historico]);
+  }, [resumo]);
 
-  const seasonsPlayed = useMemo(() => {
-    const set = new Set<string>();
-    for (const h of historico as any[]) {
-      if (h?.ano && h?.temporada) set.add(seasonKey(h.ano, h.temporada));
-    }
-    return sortSeasonKeys(Array.from(set));
-  }, [historico]);
+  // Joga desde: precisamos do dado por rodada. Como ALL/ALL não traz histórico por rodada,
+  // calculamos "joga desde" pegando a menor data nas duas últimas temporadas carregadas;
+  // e, se não houver, mostramos "—".
+  const jogaDesde = useMemo(() => {
+    const dates = (lastRounds || []).map(r => r.data).filter(Boolean).sort();
+    return dates.length ? dates[0] : null;
+  }, [lastRounds]);
 
-  const last2Seasons = useMemo(() => seasonsPlayed.slice(-2), [seasonsPlayed]);
-  const lastSeasonsForChart = useMemo(() => seasonsPlayed.slice(-6), [seasonsPlayed]);
+  // KPIs do topo (ALL/ALL): participações totais, etc.
+  const participacoes = Number(allData?.jogador?.participacoes ?? totalGeral?.participacoes ?? 0);
 
-  const [chartRows, setChartRows] = useState<Array<{ key: string; label: string; eficiencia: number; pos: number | null }>>([]);
+  // Pódios e melhores mãos: no ALL/ALL, o resumo não traz esses totais detalhados.
+  // A solução mais correta é somar por temporada usando os campos do resumo (se existirem).
+  const podios = useMemo(() => {
+    // se tiver podios no resumo, soma. senão fallback 0.
+    const has = resumo.some(s => s.podios != null);
+    if (!has) return 0;
+    return resumo.reduce((acc, s) => acc + Number(s.podios || 0), 0);
+  }, [resumo]);
+
+  const melhoresMaos = useMemo(() => {
+    const has = resumo.some(s => s.melhor_mao != null);
+    if (!has) return 0;
+    return resumo.reduce((acc, s) => acc + Number(s.melhor_mao || 0), 0);
+  }, [resumo]);
+
+  const vitorias = useMemo(() => {
+    const has = resumo.some(s => s.p1 != null);
+    if (!has) return 0;
+    return resumo.reduce((acc, s) => acc + Number(s.p1 || 0), 0);
+  }, [resumo]);
+
+  const taxaVitoria = participacoes ? vitorias / participacoes : 0;
+
+  // Financeiro (ALL/ALL)
+  const totalPago = Number(totalGeral?.total_pagar ?? 0);
+  const totalRecebido = Number(totalGeral?.total_receber ?? 0);
+  const saldo = Number(totalGeral?.saldo ?? (totalRecebido - totalPago));
+
+  // 2) Carrega apenas as ÚLTIMAS 2 temporadas (rodada-a-rodada) – no máximo 2 requests
+  const last2 = useMemo(() => {
+    if (!resumo.length) return [];
+    const keys = resumo
+      .map(s => {
+        const ano = String(s.ano || "").trim();
+        const temporada = String(s.temporada || "").trim();
+        return ano && temporada ? seasonKey(ano, temporada) : "";
+      })
+      .filter(Boolean);
+
+    const unique = Array.from(new Set(keys));
+    const sorted = sortSeasonsDesc(unique);
+    return sorted.slice(0, 2);
+  }, [resumo]);
 
   useEffect(() => {
     if (!id) return;
+    if (!last2.length) {
+      setLastRounds([]);
+      return;
+    }
 
     (async () => {
       try {
-        const effBySeason = new Map<string, number>();
-        for (const key of lastSeasonsForChart) {
-          const [ano, temporada] = key.split("-");
-          const hs = (historico as any[]).filter(h => h.ano === ano && h.temporada === temporada);
-          const pontos = hs.reduce((s, r) => s + (r.pontos || 0), 0);
-          const part = hs.length;
-          const rebuys = hs.reduce((s, r) => s + (r.rebuy || 0), 0);
-          effBySeason.set(key, calcEficiencia(pontos, part, rebuys));
-        }
+        setRoundsLoading(true);
 
-        const out: Array<{ key: string; label: string; eficiencia: number; pos: number | null }> = [];
-        for (const key of lastSeasonsForChart) {
-          const [ano, temporada] = key.split("-");
-          const label = `${ano}-${temporada}`;
-          const eficiencia = effBySeason.get(key) ?? 0;
+        const calls = last2.map(async (k) => {
+          const [ano, temporada] = k.split("-");
+          const r = await getJogador(ano, temporada, id); // season => api_public_jogador_season (inclui historico e financeiro do período)
+          const payload = (r && (r.data ?? r)) ?? null;
+          const hist = (payload?.historico ?? []) as any[];
+          return hist.map(x => ({ ...x, ano, temporada }));
+        });
 
-          let pos: number | null = null;
-          try {
-            const rows = await getRankingTemporada(ano, temporada);
-            const ranks = computeDisplayRanks(rows);
-            const idx = rows.findIndex(r => r.id_jogador === id);
-            if (idx >= 0) pos = ranks[idx];
-          } catch {}
+        const parts = await Promise.all(calls);
+        const merged = parts.flat();
 
-          out.push({ key, label, eficiencia, pos });
-        }
+        // ordena (mais recente primeiro)
+        merged.sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
 
-        setChartRows(out);
+        setLastRounds(merged);
       } catch {
-        setChartRows([]);
+        setLastRounds([]);
+      } finally {
+        setRoundsLoading(false);
       }
     })();
-  }, [id, historico, lastSeasonsForChart]);
+  }, [id, last2]);
+
+  // 3) Gráfico (últimas temporadas): usa o resumo ALL/ALL (rápido) com posicao + eficiencia aprox
+  const chartRows = useMemo(() => {
+    if (!resumo.length) return [];
+    const keys = resumo
+      .map(s => {
+        const ano = String(s.ano || "").trim();
+        const temporada = String(s.temporada || "").trim();
+        return ano && temporada ? seasonKey(ano, temporada) : "";
+      })
+      .filter(Boolean);
+
+    const unique = Array.from(new Set(keys));
+    const sorted = sortSeasonsDesc(unique).slice(0, 8).reverse(); // últimas 8, ordem crescente no gráfico
+
+    const map = new Map<string, any>();
+    for (const s of resumo) {
+      const k = seasonKey(String(s.ano || "").trim(), String(s.temporada || "").trim());
+      map.set(k, s);
+    }
+
+    return sorted.map(k => {
+      const s = map.get(k);
+      const pontos = Number(s?.pontos || 0);
+      const part = Number(s?.participacoes || 0);
+      const eficiencia = calcEficienciaApprox(pontos, part);
+      const pos = (s?.posicao !== "" && s?.posicao != null) ? Number(s.posicao) : null;
+      return { key: k, label: k, eficiencia, pos };
+    });
+  }, [resumo]);
 
   const chart = useMemo(() => {
     if (!chartRows.length) return null;
-    const maxE = Math.max(...chartRows.map(r => r.eficiencia), 0.0001);
 
+    const maxE = Math.max(...chartRows.map(r => r.eficiencia), 0.0001);
     const w = 720;
     const h = 220;
     const padX = 44;
@@ -294,18 +243,9 @@ export function Jogador() {
     return { w, h, pts, poly };
   }, [chartRows]);
 
-  const lastRounds = useMemo(() => {
-    const keys = new Set(last2Seasons);
-    return (historico as any[])
-      .filter(h => keys.has(seasonKey(h.ano, h.temporada)))
-      .sort((a, b) => (b.data || "").localeCompare(a.data || ""));
-  }, [historico, last2Seasons]);
-
   if (loading) return <div className="card">Carregando…</div>;
   if (error) return <div className="card"><b>Erro:</b> {error}</div>;
-
-  const hasPlayer = Boolean(id) && (historico.length > 0 || Boolean(data?.jogador?.nome));
-  if (!hasPlayer) return <div className="card">Jogador não encontrado.</div>;
+  if (!allData?.jogador) return <div className="card">Jogador não encontrado.</div>;
 
   return (
     <div className="container">
@@ -317,14 +257,14 @@ export function Jogador() {
 
             <div style={{ marginTop: 10, display: "flex", gap: 12, flexWrap: "wrap" }}>
               <div className="chip">
-                <b>Joga desde:</b> {formatDateBR(profile.jogadorDesde)}
+                <b>Joga desde:</b> {formatDateBR(jogaDesde)}
               </div>
               <div className="chip">
-                <b>Participações:</b> {profile.totals.participacoes}
+                <b>Participações:</b> {participacoes}
               </div>
               <div className="chip">
                 <b>Melhor campanha:</b>{" "}
-                {bestCampaign && bestCampaign.ano && bestCampaign.temporada ? `${bestCampaign.ano}-${bestCampaign.temporada}` : "—"}
+                {bestCampaign ? `${bestCampaign.ano}-${bestCampaign.temporada}` : "—"}
               </div>
             </div>
           </div>
@@ -357,37 +297,37 @@ export function Jogador() {
       <div className="row" style={{ marginTop: 12 }}>
         <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Pódios (1º–5º)</div>
-          <div className="kpi">{profile.totals.podios}</div>
-          <div className="small">Em {profile.totals.participacoes} participações</div>
+          <div className="kpi">{podios}</div>
+          <div className="small">Em {participacoes} participações</div>
         </div>
         <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Melhores mãos</div>
-          <div className="kpi">{profile.totals.melhorMao}</div>
+          <div className="kpi">{melhoresMaos}</div>
           <div className="small">Total histórico</div>
         </div>
         <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Taxa de vitória</div>
-          <div className="kpi">{formatPct(profile.taxaVitoria)}</div>
-          <div className="small">{profile.totals.vitorias} vitórias</div>
+          <div className="kpi">{formatPct(taxaVitoria)}</div>
+          <div className="small">{vitorias} vitórias</div>
         </div>
       </div>
 
-      {/* Bloco 3: financeiro */}
+      {/* Bloco 3: financeiro (ALL/ALL) */}
       <div className="row" style={{ marginTop: 12 }}>
         <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Total pago</div>
-          <div className="kpi">{formatMoneyBRL(profile.totals.pagou)}</div>
+          <div className="kpi">{formatMoneyBRL(totalPago)}</div>
           <div className="small">Buy-in + rebuys/add-ons + rateios</div>
         </div>
         <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Total recebido</div>
-          <div className="kpi">{formatMoneyBRL(profile.totals.recebeu)}</div>
+          <div className="kpi">{formatMoneyBRL(totalRecebido)}</div>
           <div className="small">Premiações</div>
         </div>
         <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Saldo total</div>
-          <div className={"kpi " + (profile.saldo >= 0 ? "moneyPos" : "moneyNeg")}>
-            {formatMoneyBRL(profile.saldo)}
+          <div className={"kpi " + (saldo >= 0 ? "moneyPos" : "moneyNeg")}>
+            {formatMoneyBRL(saldo)}
           </div>
           <div className="small">Recebeu − Pagou</div>
         </div>
@@ -399,11 +339,12 @@ export function Jogador() {
           <div>
             <div style={{ fontWeight: 900, fontSize: 18 }}>Evolução nas últimas temporadas</div>
             <div className="small">
-              Linha: <b>Eficiência de Pontos</b> (pontos / (participações + rebuys)) • Marcador: <b>posição final</b>
+              Linha: <b>Eficiência de Pontos</b> (pontos / participações) • Marcador: <b>posição final</b>
             </div>
           </div>
           <div className="chip">
-            <b>Eficiência geral:</b> {profile.eficienciaGeral.toFixed(2)}
+            <b>Eficiência geral:</b>{" "}
+            {calcEficienciaApprox(Number(totalGeral?.pontos || 0), Number(totalGeral?.participacoes || 0)).toFixed(2)}
           </div>
         </div>
 
@@ -440,37 +381,43 @@ export function Jogador() {
         <div style={{ fontWeight: 900, fontSize: 18 }}>Rodada a rodada (últimas 2 temporadas)</div>
         <div className="small">Mostra: rodada, colocação, pontos e rebuys.</div>
 
-        <div style={{ marginTop: 10, overflowX: "auto" }}>
-          <table style={{ minWidth: 760 }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: "left" }}>Rodada</th>
-                <th>Col.</th>
-                <th>Pontos</th>
-                <th>Rebuy</th>
-                <th>Add-on</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lastRounds.map((h: any) => (
-                <tr key={h.id_rodada ?? `${h.ano}-${h.temporada}-${h.rodada}`}>
-                  <td style={{ textAlign: "left" }}>{h.ano}-{h.temporada}-{h.rodada}</td>
-                  <td style={{ textAlign: "center" }}>{h.colocacao}</td>
-                  <td style={{ textAlign: "center" }}><b>{h.pontos}</b></td>
-                  <td style={{ textAlign: "center" }}>{h.rebuy ?? 0}</td>
-                  <td style={{ textAlign: "center" }}>{h.addon ?? 0}</td>
-                </tr>
-              ))}
-              {!lastRounds.length && (
+        {roundsLoading ? (
+          <div className="small" style={{ marginTop: 10 }}>Carregando rodadas…</div>
+        ) : (
+          <div style={{ marginTop: 10, overflowX: "auto" }}>
+            <table style={{ minWidth: 760 }}>
+              <thead>
                 <tr>
-                  <td colSpan={5} className="small" style={{ padding: 12, textAlign: "center" }}>
-                    Sem dados nas últimas 2 temporadas.
-                  </td>
+                  <th style={{ textAlign: "left" }}>Rodada</th>
+                  <th>Col.</th>
+                  <th>Pontos</th>
+                  <th>Rebuy</th>
+                  <th>Add-on</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {lastRounds.map((h: any) => (
+                  <tr key={h.id_rodada ?? `${h.ano}-${h.temporada}-${h.rodada}`}>
+                    <td style={{ textAlign: "left" }}>
+                      {h.ano}-{h.temporada}-{h.rodada}
+                    </td>
+                    <td style={{ textAlign: "center" }}>{h.colocacao}</td>
+                    <td style={{ textAlign: "center" }}><b>{h.pontos_rodada ?? h.pontos}</b></td>
+                    <td style={{ textAlign: "center" }}>{h.rebuy ?? 0}</td>
+                    <td style={{ textAlign: "center" }}>{h.addon ?? 0}</td>
+                  </tr>
+                ))}
+                {!lastRounds.length && (
+                  <tr>
+                    <td colSpan={5} className="small" style={{ padding: 12, textAlign: "center" }}>
+                      Sem dados nas últimas 2 temporadas.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="small" style={{ marginTop: 10, opacity: 0.85 }}>

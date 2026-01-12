@@ -476,7 +476,17 @@ export function Jogador() {
                   <g key={p.r.key}>
                     {/* Eficiência */}
                     <circle cx={p.x} cy={p.y} r="5" fill="#ffffff" stroke="#f84501" strokeWidth="3" />
-
+					{/* Valor da eficiência */}
+					<text
+					  x={p.x}
+					  y={p.y + 18}
+					  textAnchor="middle"
+					  fontSize="11"
+					  fill="rgba(229,230,234,.95)"
+					  fontWeight="900"
+					>
+					  {p.r.eficiencia.toFixed(2)}
+					</text>
                     {/* Posição (quando existir) */}
                     {hasPos && (
                       <circle cx={p.x} cy={pPos!.y} r="5" fill="#ffffff" stroke="#409fc2" strokeWidth="3" />

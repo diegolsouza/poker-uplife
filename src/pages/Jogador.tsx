@@ -1,216 +1,425 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useSearchParams, Link } from "react-router-dom";
-import { getAnosTemporadas, getJogador } from "../api/endpoints";
-import type { AnoTemporada, JogadorResponse } from "../types";
-import { SeasonFilter } from "../components/SeasonFilter";
+import { useParams } from "react-router-dom";
+import { getAnosTemporadas, getJogador, getRankingTemporada } from "../api/endpoints";
+import type { AnoTemporada, JogadorResponse, RankingRow } from "../types";
 import { formatMoneyBRL, formatPct } from "../utils/aggregate";
+
+/**
+ * Critério de "Eficiência de Pontos" (opção A combinada):
+ * eficiência = pontos / (participações + rebuys)
+ * - addon NÃO entra no denominador
+ * - cada rebuy equivale a 1 participação (no denominador)
+ */
+function calcEficiencia(pontos: number, participacoes: number, rebuys: number) {
+  const denom = (participacoes || 0) + (rebuys || 0);
+  return denom > 0 ? (pontos || 0) / denom : 0;
+}
 
 function minDateISO(dates: string[]): string | null {
   const valid = dates.filter(Boolean).sort();
   return valid.length ? valid[0] : null;
 }
 
+function seasonKey(ano: string, temporada: string) {
+  return `${ano}-${temporada}`;
+}
+
+function parseSeason(temporada: string) {
+  // "T1" -> 1
+  const m = temporada.match(/(\d+)/);
+  return m ? Number(m[1]) : 0;
+}
+
+function sortSeasonKeys(keys: string[]) {
+  return [...keys].sort((a, b) => {
+    const [ay, at] = a.split("-");
+    const [by, bt] = b.split("-");
+    const ya = Number(ay);
+    const yb = Number(by);
+    if (ya !== yb) return ya - yb;
+    return parseSeason(at) - parseSeason(bt);
+  });
+}
+
+// Empate de posição no ranking (mesmo critério do RankingTable)
+function isTieRow(a: RankingRow, b: RankingRow): boolean {
+  const keys: (keyof RankingRow)[] = [
+    "pontos",
+    "p1","p2","p3","p4","p5","p6","p7","p8","p9",
+    "serie_b",
+    "fora_mesa_final",
+    "podios",
+    "melhor_mao",
+    "rebuy_total",
+    "addon_total",
+    "participacoes",
+  ];
+  for (const k of keys) {
+    // @ts-expect-error numeric compare
+    if ((a[k] || 0) !== (b[k] || 0)) return false;
+  }
+  return true;
+}
+
+function computeDisplayRanks(rows: RankingRow[]): number[] {
+  const ranks: number[] = [];
+  for (let i = 0; i < rows.length; i++) {
+    if (i > 0 && isTieRow(rows[i], rows[i - 1])) ranks.push(ranks[i - 1]);
+    else ranks.push(i + 1);
+  }
+  return ranks;
+}
+
 export function Jogador() {
   const { id } = useParams();
-  const [sp] = useSearchParams();
+
   const [options, setOptions] = useState<AnoTemporada[]>([]);
-  const [ano, setAno] = useState<string>(sp.get("ano") ?? "ALL");
-  const [temporada, setTemporada] = useState<string>(sp.get("temporada") ?? "ALL");
   const [data, setData] = useState<JogadorResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Carrega opções (para sabermos o "últimas temporadas" com base no cadastro do app)
   useEffect(() => {
     (async () => {
       try {
         const opts = await getAnosTemporadas();
         setOptions(opts);
-      } catch {}
+      } catch {
+        // ok: a página ainda funciona sem opções
+      }
     })();
   }, []);
 
+  // Carrega histórico completo do jogador (ALL/ALL)
   useEffect(() => {
     if (!id) return;
     (async () => {
       try {
         setLoading(true);
         setError(null);
-
-        // Backend suporta ALL/ALL diretamente.
-        if (ano === "ALL" && temporada === "ALL") {
-          const r = await getJogador("ALL", "ALL", id);
-          setData(r);
-          return;
-        }
-
-        // Ano específico + Temporada específica
-        if (ano !== "ALL" && temporada !== "ALL") {
-          const r = await getJogador(ano, temporada, id);
-          setData(r);
-          return;
-        }
-
-        // Ano específico + Temporada ALL
-        // Estratégia: pedir ALL/ALL e filtrar o histórico por ano (e recalcular os cards no frontend)
         const r = await getJogador("ALL", "ALL", id);
         setData(r);
-      } catch (e:any) {
+      } catch (e: any) {
         setError(e?.message ?? "Erro ao carregar jogador");
       } finally {
         setLoading(false);
       }
     })();
-  }, [id, ano, temporada]);
+  }, [id]);
 
-  const computed = useMemo(() => {
-    if (!data?.jogador) return null;
+  const historico = useMemo(() => (data?.historico ?? []).filter(h => h.participou), [data]);
 
-    const hist = data.historico ?? [];
-    const filteredHist = hist.filter(h => {
-      if (ano !== "ALL" && h.ano !== ano) return false;
-      if (temporada !== "ALL" && h.temporada !== temporada) return false;
-      return true;
-    });
+  const jogadorNome = data?.jogador?.nome ?? id ?? "Jogador";
 
-    const participou = filteredHist.filter(h => h.participou);
+  // Foto: public/players/J004.png
+  const fotoUrl = useMemo(() => {
+    if (!id) return "";
+    const base = import.meta.env.BASE_URL || "/";
+    return `${base}players/${id}.png`;
+  }, [id]);
+
+  // Agregações gerais do perfil
+  const profile = useMemo(() => {
+    const participou = historico;
     const jogadorDesde = minDateISO(participou.map(h => h.data));
 
-    // somatórios filtrados
     const totals = participou.reduce((acc, h) => {
       acc.participacoes += 1;
-      acc.p1 += (h.colocacao === 1 ? 1 : 0);
-      acc.podios += (h.colocacao >= 1 && h.colocacao <= 5 ? 1 : 0); // regra do seu pódio
+      acc.podios += (h.colocacao >= 1 && h.colocacao <= 5 ? 1 : 0);
+      acc.vitorias += (h.colocacao === 1 ? 1 : 0);
+      acc.melhorMao += (h.melhor_mao ? 1 : 0);
       acc.rebuy += (h.rebuy || 0);
       acc.addon += (h.addon || 0);
       acc.pagou += (h.pagou || 0);
       acc.recebeu += (h.recebeu || 0);
-      acc.melhorMao += (h.melhor_mao ? 1 : 0);
+      acc.pontos += (h.pontos || 0);
       return acc;
-    }, { participacoes:0, p1:0, podios:0, rebuy:0, addon:0, pagou:0, recebeu:0, melhorMao:0 });
+    }, { participacoes:0, podios:0, vitorias:0, melhorMao:0, rebuy:0, addon:0, pagou:0, recebeu:0, pontos:0 });
 
     const saldo = totals.recebeu - totals.pagou;
-    const taxaPodio = totals.participacoes ? totals.podios / totals.participacoes : 0;
-    const taxaVitoria = totals.participacoes ? totals.p1 / totals.participacoes : 0;
+    const taxaVitoria = totals.participacoes ? totals.vitorias / totals.participacoes : 0;
 
-    return { jogadorDesde, totals, saldo, taxaPodio, taxaVitoria, filteredHist };
-  }, [data, ano, temporada]);
+    // eficiência geral (mesma fórmula)
+    const eficienciaGeral = calcEficiencia(totals.pontos, totals.participacoes, totals.rebuy);
+
+    return { jogadorDesde, totals, saldo, taxaVitoria, eficienciaGeral };
+  }, [historico]);
+
+  // Melhor campanha: temporada com maior eficiência de pontos
+  const bestCampaign = useMemo(() => {
+    const bySeason = new Map<string, { ano: string; temporada: string; pontos: number; part: number; rebuys: number }>();
+
+    for (const h of historico) {
+      const key = seasonKey(h.ano, h.temporada);
+      const cur = bySeason.get(key) ?? { ano: h.ano, temporada: h.temporada, pontos: 0, part: 0, rebuys: 0 };
+      cur.pontos += (h.pontos || 0);
+      cur.part += 1;
+      cur.rebuys += (h.rebuy || 0);
+      bySeason.set(key, cur);
+    }
+
+    let best: { ano: string; temporada: string; eficiencia: number } | null = null;
+    for (const v of bySeason.values()) {
+      const e = calcEficiencia(v.pontos, v.part, v.rebuys);
+      if (!best || e > best.eficiencia) best = { ano: v.ano, temporada: v.temporada, eficiencia: e };
+    }
+    return best;
+  }, [historico]);
+
+  // Últimas temporadas (para gráfico e tabela)
+  const seasonsPlayed = useMemo(() => {
+    const set = new Set<string>();
+    for (const h of historico) set.add(seasonKey(h.ano, h.temporada));
+    return sortSeasonKeys(Array.from(set));
+  }, [historico]);
+
+  const last2Seasons = useMemo(() => seasonsPlayed.slice(-2), [seasonsPlayed]);
+  const lastSeasonsForChart = useMemo(() => seasonsPlayed.slice(-6), [seasonsPlayed]); // últimas 6 (ajustável)
+
+  // Dados do gráfico: eficiência + posição final na temporada
+  const [chartRows, setChartRows] = useState<Array<{ key: string; label: string; eficiencia: number; pos: number | null }>>([]);
+
+  useEffect(() => {
+    if (!id) return;
+
+    (async () => {
+      try {
+        // monta eficiência a partir do histórico (local)
+        const effBySeason = new Map<string, number>();
+        for (const key of lastSeasonsForChart) {
+          const [ano, temporada] = key.split("-");
+          const hs = historico.filter(h => h.ano === ano && h.temporada === temporada);
+          const pontos = hs.reduce((s, r) => s + (r.pontos || 0), 0);
+          const part = hs.length;
+          const rebuys = hs.reduce((s, r) => s + (r.rebuy || 0), 0);
+          effBySeason.set(key, calcEficiencia(pontos, part, rebuys));
+        }
+
+        // busca posição final via ranking da temporada
+        const out: Array<{ key: string; label: string; eficiencia: number; pos: number | null }> = [];
+        for (const key of lastSeasonsForChart) {
+          const [ano, temporada] = key.split("-");
+          const label = `${ano}-${temporada}`;
+          const eficiencia = effBySeason.get(key) ?? 0;
+
+          let pos: number | null = null;
+          try {
+            const rows = await getRankingTemporada(ano, temporada);
+            const ranks = computeDisplayRanks(rows);
+            const idx = rows.findIndex(r => r.id_jogador === id);
+            if (idx >= 0) pos = ranks[idx];
+          } catch {
+            // se falhar, não bloqueia o resto do perfil
+          }
+
+          out.push({ key, label, eficiencia, pos });
+        }
+
+        setChartRows(out);
+      } catch {
+        setChartRows([]);
+      }
+    })();
+  }, [id, historico, lastSeasonsForChart]);
+
+  const chart = useMemo(() => {
+    if (!chartRows.length) return null;
+
+    const maxE = Math.max(...chartRows.map(r => r.eficiencia), 0.0001);
+    const w = 720;
+    const h = 220;
+    const padX = 44;
+    const padY = 26;
+
+    const pts = chartRows.map((r, i) => {
+      const x = padX + (i * (w - padX * 2)) / Math.max(1, chartRows.length - 1);
+      const y = (h - padY) - (r.eficiencia / maxE) * (h - padY * 2);
+      return { x, y, r };
+    });
+
+    const poly = pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+
+    return { w, h, pts, poly, maxE };
+  }, [chartRows]);
+
+  // Rodada a rodada (últimas 2 temporadas)
+  const lastRounds = useMemo(() => {
+    const keys = new Set(last2Seasons);
+    return historico
+      .filter(h => keys.has(seasonKey(h.ano, h.temporada)))
+      .sort((a, b) => (b.data || "").localeCompare(a.data || "")); // mais recentes primeiro
+  }, [historico, last2Seasons]);
+
+  if (loading) return <div className="card">Carregando…</div>;
+  if (error) return <div className="card"><b>Erro:</b> {error}</div>;
+  if (!id || !data?.jogador || !profile) return <div className="card">Jogador não encontrado.</div>;
 
   return (
     <div className="container">
-      <div className="card" style={{marginBottom:12}}>
-        <Link to="/">← Voltar para o ranking</Link>
+      {/* Cabeçalho do perfil */}
+      <div className="card">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ minWidth: 240, flex: "1 1 320px" }}>
+            <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: 0.2 }}>{jogadorNome}</div>
+
+            <div style={{ marginTop: 10, display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <div className="chip">
+                <b>Joga desde:</b> {profile.jogadorDesde ?? "—"}
+              </div>
+              <div className="chip">
+                <b>Participações:</b> {profile.totals.participacoes}
+              </div>
+              <div className="chip">
+                <b>Melhor campanha:</b>{" "}
+                {bestCampaign ? `${bestCampaign.ano}-${bestCampaign.temporada}` : "—"}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ width: 132, height: 132, borderRadius: 18, overflow: "hidden", border: "1px solid rgba(229,230,234,.18)", background: "rgba(255,255,255,.04)" }}>
+            {/* Se a imagem não existir, o alt aparece e o layout não quebra */}
+            <img
+              src={fotoUrl}
+              alt={`${id}.png`}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              onError={(e) => {
+                // fallback visual simples
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
+            />
+            <div style={{ padding: 10, fontSize: 12, opacity: 0.75 }}>
+              {!fotoUrl ? "" : ""}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {error && <div className="card" style={{borderColor:"rgba(255,77,77,.35)"}}><b>Erro:</b> {error}</div>}
+      {/* Bloco 2: desempenho */}
+      <div className="row" style={{ marginTop: 12 }}>
+        <div className="card" style={{ flex: "1 1 220px" }}>
+          <div className="small">Pódios (1º–5º)</div>
+          <div className="kpi">{profile.totals.podios}</div>
+          <div className="small">Em {profile.totals.participacoes} participações</div>
+        </div>
+        <div className="card" style={{ flex: "1 1 220px" }}>
+          <div className="small">Melhores mãos</div>
+          <div className="kpi">{profile.totals.melhorMao}</div>
+          <div className="small">Total histórico</div>
+        </div>
+        <div className="card" style={{ flex: "1 1 220px" }}>
+          <div className="small">Taxa de vitória</div>
+          <div className="kpi">{formatPct(profile.taxaVitoria)}</div>
+          <div className="small">{profile.totals.vitorias} vitórias</div>
+        </div>
+      </div>
 
-      <SeasonFilter
-        options={options}
-        ano={ano}
-        temporada={temporada}
-        onChange={(n) => { setAno(n.ano); setTemporada(n.temporada); }}
-      />
+      {/* Bloco 3: financeiro */}
+      <div className="row" style={{ marginTop: 12 }}>
+        <div className="card" style={{ flex: "1 1 220px" }}>
+          <div className="small">Total pago</div>
+          <div className="kpi">{formatMoneyBRL(profile.totals.pagou)}</div>
+          <div className="small">Buy-in + rebuys/add-ons + rateios</div>
+        </div>
+        <div className="card" style={{ flex: "1 1 220px" }}>
+          <div className="small">Total recebido</div>
+          <div className="kpi">{formatMoneyBRL(profile.totals.recebeu)}</div>
+          <div className="small">Premiações</div>
+        </div>
+        <div className="card" style={{ flex: "1 1 220px" }}>
+          <div className="small">Saldo total</div>
+          <div className={"kpi " + (profile.saldo >= 0 ? "moneyPos" : "moneyNeg")}>
+            {formatMoneyBRL(profile.saldo)}
+          </div>
+          <div className="small">Recebeu − Pagou</div>
+        </div>
+      </div>
 
-      {loading || !computed || !data?.jogador ? (
-        <div className="card" style={{marginTop:12}}>Carregando…</div>
-      ) : (
-        <>
-          <div className="row" style={{marginTop:12}}>
-            <div className="card" style={{flex:"1 1 260px"}}>
-              <div className="small">Jogador</div>
-              <div className="kpi">{data.jogador.nome}</div>
-              <div className="small">{id}</div>
-            </div>
-            <div className="card" style={{flex:"1 1 260px"}}>
-              <div className="small">Jogador desde</div>
-              <div className="kpi">{computed.jogadorDesde ?? "—"}</div>
-              <div className="small">Primeira rodada com participação</div>
-            </div>
-            <div className="card" style={{flex:"1 1 260px"}}>
-              <div className="small">Taxa de pódio (1º–5º)</div>
-              <div className="kpi">{formatPct(computed.taxaPodio)}</div>
-              <div className="small">{computed.totals.podios} pódios / {computed.totals.participacoes} part.</div>
-            </div>
-            <div className="card" style={{flex:"1 1 260px"}}>
-              <div className="small">Taxa de vitória</div>
-              <div className="kpi">{formatPct(computed.taxaVitoria)}</div>
-              <div className="small">{computed.totals.p1} vitórias / {computed.totals.participacoes} part.</div>
-            </div>
-            <div className="card" style={{flex:"1 1 260px"}}>
-              <div className="small">Rebuys</div>
-              <div className="kpi">{computed.totals.rebuy}</div>
-              <div className="small">No filtro selecionado</div>
-            </div>
-            <div className="card" style={{flex:"1 1 260px"}}>
-              <div className="small">Add-ons</div>
-              <div className="kpi">{computed.totals.addon}</div>
-              <div className="small">No filtro selecionado</div>
+      {/* Gráfico: evolução */}
+      <div className="card" style={{ marginTop: 12 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 18 }}>Evolução nas últimas temporadas</div>
+            <div className="small">
+              Linha: <b>Eficiência de Pontos</b> (pontos / (participações + rebuys)) • Marcador: <b>posição final</b>
             </div>
           </div>
-
-          <div className="row" style={{marginTop:12}}>
-            <div className="card" style={{flex:"1 1 260px"}}>
-              <div className="small">Pagou</div>
-              <div className="kpi">{formatMoneyBRL(computed.totals.pagou)}</div>
-              <div className="small">Buy-in + rebuy + add-on + custos</div>
-            </div>
-            <div className="card" style={{flex:"1 1 260px"}}>
-              <div className="small">Recebeu</div>
-              <div className="kpi">{formatMoneyBRL(computed.totals.recebeu)}</div>
-              <div className="small">Premiações recebidas</div>
-            </div>
-            <div className="card" style={{flex:"1 1 260px"}}>
-              <div className="small">Saldo</div>
-              <div className={"kpi " + (computed.saldo >= 0 ? "moneyPos" : "moneyNeg")}>
-                {formatMoneyBRL(computed.saldo)}
-              </div>
-              <div className="small">Recebeu − Pagou</div>
-            </div>
+          <div className="chip">
+            <b>Eficiência geral:</b> {profile.eficienciaGeral.toFixed(2)}
           </div>
+        </div>
 
-          <div className="card" style={{marginTop:12}}>
-            <h3 className="cardTitle">Histórico (no filtro)</h3>
-            <div className="tableWrap">
-              <table style={{minWidth:980}}>
-                <thead>
-                  <tr>
-                    <th>Data</th>
-                    <th style={{textAlign:"left"}}>Rodada</th>
-                    <th>Col.</th>
-                    <th>Pontos</th>
-                    <th>CSB</th>
-                    <th>Melhor Mão</th>
-                    <th>Rebuy</th>
-                    <th>Add-on</th>
-                    <th>Pagou</th>
-                    <th>Recebeu</th>
-                    <th>Saldo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {computed.filteredHist
-                    .filter(h => h.participou)
-                    .sort((a,b) => a.data.localeCompare(b.data))
-                    .map(h => (
-                      <tr key={h.id_rodada}>
-                        <td style={{textAlign:"center"}}>{h.data}</td>
-                        <td style={{textAlign:"left"}}>{h.ano}-{h.temporada}-{h.rodada}</td>
-                        <td>{h.colocacao}</td>
-                        <td><b>{h.pontos}</b></td>
-                        <td>{h.foi_csb ? "✓" : ""}</td>
-                        <td>{h.melhor_mao ? "✓" : ""}</td>
-                        <td>{h.rebuy}</td>
-                        <td>{h.addon}</td>
-                        <td>{formatMoneyBRL(h.pagou)}</td>
-                        <td>{formatMoneyBRL(h.recebeu)}</td>
-                        <td className={h.saldo >= 0 ? "moneyPos" : "moneyNeg"}>{formatMoneyBRL(h.saldo)}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
+        {!chart ? (
+          <div className="small" style={{ marginTop: 10 }}>Sem dados suficientes para o gráfico.</div>
+        ) : (
+          <div style={{ marginTop: 10, overflowX: "auto" }}>
+            <svg width={chart.w} height={chart.h} viewBox={`0 0 ${chart.w} ${chart.h}`} style={{ display: "block" }}>
+              {/* eixo */}
+              <line x1="44" y1={chart.h - 26} x2={chart.w - 44} y2={chart.h - 26} stroke="rgba(229,230,234,.25)" />
+              <line x1="44" y1="26" x2="44" y2={chart.h - 26} stroke="rgba(229,230,234,.25)" />
+
+              {/* polyline */}
+              <polyline fill="none" stroke="#f84501" strokeWidth="3" points={chart.poly} />
+
+              {chart.pts.map((p, idx) => (
+                <g key={p.r.key}>
+                  <circle cx={p.x} cy={p.y} r="5" fill="#ffffff" stroke="#f84501" strokeWidth="3" />
+                  {p.r.pos != null && (
+                    <text x={p.x} y={p.y - 10} textAnchor="middle" fontSize="12" fill="rgba(229,230,234,.95)" fontWeight="900">
+                      {p.r.pos}º
+                    </text>
+                  )}
+                  <text x={p.x} y={chart.h - 10} textAnchor="middle" fontSize="11" fill="rgba(229,230,234,.75)">
+                    {p.r.label.replace("-", " ").replace("T", "T")}
+                  </text>
+                </g>
+              ))}
+            </svg>
           </div>
-        </>
-      )}
+        )}
+      </div>
+
+      {/* Rodada a rodada (últimas 2 temporadas) */}
+      <div className="card" style={{ marginTop: 12 }}>
+        <div style={{ fontWeight: 900, fontSize: 18 }}>Rodada a rodada (últimas 2 temporadas)</div>
+        <div className="small">Mostra: rodada, colocação, pontos e rebuys.</div>
+
+        <div style={{ marginTop: 10, overflowX: "auto" }}>
+          <table style={{ minWidth: 760 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left" }}>Rodada</th>
+                <th>Col.</th>
+                <th>Pontos</th>
+                <th>Rebuy</th>
+                <th>Add-on</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lastRounds.map((h: any) => (
+                <tr key={h.id_rodada}>
+                  <td style={{ textAlign: "left" }}>{h.ano}-{h.temporada}-{h.rodada}</td>
+                  <td style={{ textAlign: "center" }}>{h.colocacao}</td>
+                  <td style={{ textAlign: "center" }}><b>{h.pontos}</b></td>
+                  <td style={{ textAlign: "center" }}>{h.rebuy ?? 0}</td>
+                  <td style={{ textAlign: "center" }}>{h.addon ?? 0}</td>
+                </tr>
+              ))}
+              {!lastRounds.length && (
+                <tr>
+                  <td colSpan={5} className="small" style={{ padding: 12, textAlign: "center" }}>
+                    Sem dados nas últimas 2 temporadas.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Nota sobre fotos */}
+      <div className="small" style={{ marginTop: 10, opacity: 0.8 }}>
+        Fotos: coloque os arquivos em <b>public/players/</b> com o nome do ID (ex.: <b>public/players/{id}.png</b>).
+      </div>
     </div>
   );
 }

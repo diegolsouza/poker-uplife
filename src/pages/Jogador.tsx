@@ -421,7 +421,7 @@ export function Jogador() {
       </div>
 
       <div className="small" style={{ marginTop: 10, opacity: 0.85 }}>
-        Fotos: coloque em <b>public/players/</b> (ex.: <b>public/players/{id}.png</b>). Se não existir, usa <b>default.png</b>.
+        Se desejar remover ou substituir sua foto, entre em contato.
       </div>
     </div>
   );

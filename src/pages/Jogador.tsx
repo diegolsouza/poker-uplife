@@ -292,20 +292,45 @@ export function Jogador() {
   const chart = useMemo(() => {
     if (!chartRows.length) return null;
 
-    const maxE = Math.max(...chartRows.map(r => r.eficiencia), 0.0001);
+    const maxE = Math.max(...chartRows.map((r) => r.eficiencia), 0.0001);
+
+    // Para posição: quanto MENOR melhor (1º é melhor). Vamos inverter a escala no eixo Y.
+    const posVals = chartRows
+      .map((r) => (r.pos == null ? null : Number(r.pos)))
+      .filter((v) => v != null) as number[];
+    const maxPos = posVals.length ? Math.max(...posVals, 1) : 1;
+
     const w = 720;
     const h = 220;
     const padX = 44;
     const padY = 26;
 
-    const pts = chartRows.map((r, i) => {
+    const ptsE = chartRows.map((r, i) => {
       const x = padX + (i * (w - padX * 2)) / Math.max(1, chartRows.length - 1);
       const y = h - padY - (r.eficiencia / maxE) * (h - padY * 2);
       return { x, y, r };
     });
 
-    const poly = pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
-    return { w, h, pts, poly };
+    const ptsP = chartRows.map((r, i) => {
+      const x = padX + (i * (w - padX * 2)) / Math.max(1, chartRows.length - 1);
+
+      // Se não tiver posição nessa temporada, deixa fora do gráfico
+      if (r.pos == null) return { x, y: NaN, r };
+
+      // Mapeia posição 1..maxPos para Y (invertido: 1 no topo)
+      const norm = (Number(r.pos) - 1) / Math.max(1, maxPos - 1); // 0..1
+      const y = padY + norm * (h - padY * 2);
+      return { x, y, r };
+    });
+
+    const polyE = ptsE.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+
+    const polyP = ptsP
+      .filter((p) => Number.isFinite(p.y))
+      .map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+      .join(" ");
+
+    return { w, h, ptsE, ptsP, polyE, polyP, maxPos };
   }, [chartRows]);
 
   if (loading) return <div className="card">Carregando…</div>;
@@ -394,7 +419,7 @@ export function Jogador() {
           <div className="small">Somando todas as temporadas</div>
         </div>
       </div>
-{/* Bloco 3: financeiro (ALL/ALL)
+{/* Bloco 3: financeiro (ALL/ALL) 
       <div className="row" style={{ marginTop: 12 }}>
         <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Total pago</div>
@@ -413,14 +438,15 @@ export function Jogador() {
           </div>
           <div className="small">Recebeu − Pagou</div>
         </div>
-      </div>*/}
+      </div>
+*/}
       {/* Gráfico */}
       <div className="card" style={{ marginTop: 12 }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div>
             <div style={{ fontWeight: 900, fontSize: 18 }}>Evolução nas últimas temporadas</div>
             <div className="small">
-              Linha: <b>Eficiência de Pontos</b> (pontos / participações) • Marcador: <b>posição final</b>
+              Linha laranja: <b>Eficiência</b> (pontos/participações) • Linha azul: <b>Posição final</b> (1º melhor)
             </div>
           </div>
           <div className="chip">
@@ -437,21 +463,44 @@ export function Jogador() {
               <line x1="44" y1={chart.h - 26} x2={chart.w - 44} y2={chart.h - 26} stroke="rgba(229,230,234,.25)" />
               <line x1="44" y1="26" x2="44" y2={chart.h - 26} stroke="rgba(229,230,234,.25)" />
 
-              <polyline fill="none" stroke="#f84501" strokeWidth="3" points={chart.poly} />
+              <polyline fill="none" stroke="#f84501" strokeWidth="3" points={chart.polyE} />
 
-              {chart.pts.map((p) => (
-                <g key={p.r.key}>
-                  <circle cx={p.x} cy={p.y} r="5" fill="#ffffff" stroke="#f84501" strokeWidth="3" />
-                  {p.r.pos != null && (
-                    <text x={p.x} y={p.y - 10} textAnchor="middle" fontSize="12" fill="rgba(229,230,234,.95)" fontWeight="900">
-                      {p.r.pos}º
+              {/* Linha da posição final (escala invertida: 1º é melhor) */}
+              <polyline fill="none" stroke="#14323d" strokeWidth="3" points={chart.polyP} />
+
+              {chart.ptsE.map((p) => {
+                const pPos = chart.ptsP.find((pp) => pp.r.key === p.r.key);
+                const hasPos = pPos && Number.isFinite(pPos.y);
+
+                return (
+                  <g key={p.r.key}>
+                    {/* Eficiência */}
+                    <circle cx={p.x} cy={p.y} r="5" fill="#ffffff" stroke="#f84501" strokeWidth="3" />
+
+                    {/* Posição (quando existir) */}
+                    {hasPos && (
+                      <circle cx={p.x} cy={pPos!.y} r="5" fill="#ffffff" stroke="#14323d" strokeWidth="3" />
+                    )}
+
+                    {p.r.pos != null && hasPos && (
+                      <text
+                        x={p.x}
+                        y={pPos!.y - 10}
+                        textAnchor="middle"
+                        fontSize="12"
+                        fill="rgba(229,230,234,.95)"
+                        fontWeight="900"
+                      >
+                        {p.r.pos}º
+                      </text>
+                    )}
+
+                    <text x={p.x} y={chart.h - 10} textAnchor="middle" fontSize="11" fill="rgba(229,230,234,.75)">
+                      {p.r.label}
                     </text>
-                  )}
-                  <text x={p.x} y={chart.h - 10} textAnchor="middle" fontSize="11" fill="rgba(229,230,234,.75)">
-                    {p.r.label}
-                  </text>
-                </g>
-              ))}
+                  </g>
+                );
+              })}
             </svg>
           </div>
         )}
@@ -502,7 +551,7 @@ export function Jogador() {
       </div>
 
       <div className="small" style={{ marginTop: 10, opacity: 0.85 }}>
-        Se desejar remover ou substituir sua foto, entre em contato.
+        Fotos: coloque em <b>public/players/</b> (ex.: <b>public/players/{id}.png</b>). Se não existir, usa <b>default.png</b>.
       </div>
     </div>
   );

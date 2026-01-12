@@ -361,6 +361,21 @@ export function Jogador() {
             {/* Bloco 2: desempenho */}
       <div className="row" style={{ marginTop: 12 }}>
         <div className="card" style={{ flex: "1 1 220px" }}>
+          <div className="small">Ranking geral</div>
+          <div className="kpi">{geralPos != null ? `${geralPos}º` : "—"}</div>
+          <div className="small">Posição no ranking geral</div>
+        </div>
+		<div className="card" style={{ flex: "1 1 220px" }}>
+          <div className="small">Aproveitamento</div>
+          <div className="kpi">{aproveitamento.toFixed(2)}</div>
+          <div className="small">Pontos (geral) ÷ participações</div>
+        </div>
+        <div className="card" style={{ flex: "1 1 220px" }}>
+          <div className="small">Taxa de vitória</div>
+          <div className="kpi">{formatPct(taxaVitoria)}</div>
+          <div className="small">{vitorias} vitórias</div>
+        </div>
+		<div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Pódios (1º–5º)</div>
           <div className="kpi" style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
             <span>{podios}</span>
@@ -368,42 +383,18 @@ export function Jogador() {
           </div>
           <div className="small">Em {participacoes} participações</div>
         </div>
-
-        <div className="card" style={{ flex: "1 1 220px" }}>
-          <div className="small">Rebuys (total)</div>
-          <div className="kpi">{totalRebuys}</div>
-          <div className="small">Somando todas as temporadas</div>
-        </div>
-
         <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Melhores mãos</div>
           <div className="kpi">{melhoresMaos}</div>
           <div className="small">Total histórico</div>
         </div>
-
         <div className="card" style={{ flex: "1 1 220px" }}>
-          <div className="small">Taxa de vitória</div>
-          <div className="kpi">{formatPct(taxaVitoria)}</div>
-          <div className="small">{vitorias} vitórias</div>
+          <div className="small">Rebuys (total)</div>
+          <div className="kpi">{totalRebuys}</div>
+          <div className="small">Somando todas as temporadas</div>
         </div>
       </div>
-
-      {/* Bloco 2B: ranking geral */}
-      <div className="row" style={{ marginTop: 12 }}>
-        <div className="card" style={{ flex: "1 1 220px" }}>
-          <div className="small">Ranking geral</div>
-          <div className="kpi">{geralPos != null ? `${geralPos}º` : "—"}</div>
-          <div className="small">Posição no ranking geral</div>
-        </div>
-
-        <div className="card" style={{ flex: "1 1 220px" }}>
-          <div className="small">Aproveitamento</div>
-          <div className="kpi">{aproveitamento.toFixed(2)}</div>
-          <div className="small">Pontos (geral) ÷ participações</div>
-        </div>
-      </div>
-
-{/* Bloco 3: financeiro (ALL/ALL) */}
+{/* Bloco 3: financeiro (ALL/ALL)
       <div className="row" style={{ marginTop: 12 }}>
         <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Total pago</div>
@@ -422,8 +413,7 @@ export function Jogador() {
           </div>
           <div className="small">Recebeu − Pagou</div>
         </div>
-      </div>
-
+      </div>*/}
       {/* Gráfico */}
       <div className="card" style={{ marginTop: 12 }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>

@@ -46,15 +46,7 @@ function sortSeasonsDesc(keys: string[]) {
     return parseSeason(bt) - parseSeason(at);
   });
 }
-function formatDateBR(input?: string) {
-  if (!input) return "—";
-  const d = new Date(input);
-  if (Number.isNaN(d.getTime())) return "—";
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const yyyy = d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
+
 // Empate de posição (mesmo critério do RankingTable: todos os campos numéricos iguais)
 function isTieRow(a: any, b: any): boolean {
   const keys = [

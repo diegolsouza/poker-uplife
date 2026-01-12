@@ -466,7 +466,7 @@ export function Jogador() {
               <polyline fill="none" stroke="#f84501" strokeWidth="3" points={chart.polyE} />
 
               {/* Linha da posição final (escala invertida: 1º é melhor) */}
-              <polyline fill="none" stroke="#14323d" strokeWidth="3" points={chart.polyP} />
+              <polyline fill="none" stroke="#409fc2" strokeWidth="3" points={chart.polyP} />
 
               {chart.ptsE.map((p) => {
                 const pPos = chart.ptsP.find((pp) => pp.r.key === p.r.key);
@@ -479,7 +479,7 @@ export function Jogador() {
 
                     {/* Posição (quando existir) */}
                     {hasPos && (
-                      <circle cx={p.x} cy={pPos!.y} r="5" fill="#ffffff" stroke="#14323d" strokeWidth="3" />
+                      <circle cx={p.x} cy={pPos!.y} r="5" fill="#ffffff" stroke="#409fc2" strokeWidth="3" />
                     )}
 
                     {p.r.pos != null && hasPos && (

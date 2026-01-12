@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { getAnosTemporadas, getJogador, getRankingTemporada } from "../api/endpoints";
 import type { AnoTemporada, RankingRow } from "../types";
 import { formatMoneyBRL, formatPct } from "../utils/aggregate";
@@ -14,9 +14,8 @@ function formatDateBR(input: string | null | undefined) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-
 /**
- * Critério de "Eficiência de Pontos" (opção A combinada):
+ * Eficiência de Pontos:
  * eficiência = pontos / (participações + rebuys)
  * - addon NÃO entra no denominador
  * - cada rebuy equivale a 1 participação (no denominador)
@@ -55,15 +54,7 @@ function sortSeasonKeys(keys: string[]) {
 function isTieRow(a: RankingRow, b: RankingRow): boolean {
   const keys: (keyof RankingRow)[] = [
     "pontos",
-    "p1",
-    "p2",
-    "p3",
-    "p4",
-    "p5",
-    "p6",
-    "p7",
-    "p8",
-    "p9",
+    "p1","p2","p3","p4","p5","p6","p7","p8","p9",
     "serie_b",
     "fora_mesa_final",
     "podios",
@@ -88,18 +79,18 @@ function computeDisplayRanks(rows: RankingRow[]): number[] {
   return ranks;
 }
 
+type AnyJogadorPayload = {
+  jogador?: { id_jogador: string; nome: string };
+  historico?: any[];
+};
+
 export function Jogador() {
   const params = useParams();
-  const [sp] = useSearchParams();
-
   // ✅ robusto: funciona mesmo se a rota usar outro nome de param
   const id = (params as any).id ?? (params as any).id_jogador ?? (params as any).playerId ?? "";
 
-  // (Opcional) se chegar com ?ano=...&temporada=..., usa para a chamada do backend
-  // Isso evita "Jogador não encontrado" caso a API não suporte ALL/ALL em algumas versões.
-  
   const [options, setOptions] = useState<AnoTemporada[]>([]);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<AnyJogadorPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -110,41 +101,77 @@ export function Jogador() {
   const fotoJogador = `${baseUrl}players/${id}.png`;
   const fotoPadrao = `${baseUrl}players/default.png`;
 
+  // Carrega lista de temporadas
   useEffect(() => {
     (async () => {
       try {
         const opts = await getAnosTemporadas();
         setOptions(opts);
       } catch {
-        // ok
+        setOptions([]);
       }
     })();
   }, []);
 
+  // Carrega histórico COMPLETO (todos os anos/temporadas)
   useEffect(() => {
     if (!id) return;
+
     (async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // ✅ Perfil sempre carrega histórico completo (ALL/ALL)
-        const r = await getJogador("ALL", "ALL", id);
+        // 1) Se o backend suportar ALL/ALL, ótimo.
+        // 2) Se não suportar (historico vazio), a gente agrega no frontend chamando temporada por temporada.
+        let payload: AnyJogadorPayload | null = null;
 
-        // alguns backends retornam { data: ... }
-        const payload = (r && (r.data ?? r)) ?? null;
-        setData(payload);
+        try {
+          const r: any = await getJogador("ALL", "ALL", id);
+          payload = (r && (r.data ?? r)) ?? null;
+        } catch {
+          payload = null;
+        }
+
+        const hist0 = (payload?.historico ?? []).filter((h) => h?.participou);
+
+        if (hist0.length) {
+          setData({ jogador: payload?.jogador, historico: hist0 });
+          return;
+        }
+
+        // Fallback: agrega via lista de temporadas
+        if (!options.length) {
+          // Sem opções, não dá pra fan-out
+          setData({ jogador: payload?.jogador, historico: hist0 });
+          return;
+        }
+
+        const pairs = options; // todas as temporadas conhecidas
+        const responses = await Promise.all(
+          pairs.map((p) =>
+            getJogador(p.ano, p.temporada, id)
+              .then((r: any) => (r && (r.data ?? r)) ?? null)
+              .catch(() => null)
+          )
+        );
+
+        const jogador = responses.find((r) => r?.jogador)?.jogador ?? payload?.jogador;
+        const historico = responses
+          .flatMap((r) => (r?.historico ?? []))
+          .filter((h) => h?.participou);
+
+        setData({ jogador, historico });
       } catch (e: any) {
         setError(e?.message ?? "Erro ao carregar jogador");
       } finally {
         setLoading(false);
       }
     })();
-  }, [id]);
+  }, [id, options]);
 
-  const historico = useMemo(() => (data?.historico ?? []).filter((h: any) => h?.participou), [data]);
-
-  const jogadorNome = data?.jogador?.nome ?? data?.nome ?? id ?? "Jogador";
+  const historico = useMemo(() => (data?.historico ?? []).filter((h) => h?.participou), [data]);
+  const jogadorNome = data?.jogador?.nome ?? (historico[0]?.nome ?? id) ?? "Jogador";
 
   const profile = useMemo(() => {
     const participou = historico;
@@ -158,8 +185,9 @@ export function Jogador() {
         acc.melhorMao += h.melhor_mao ? 1 : 0;
         acc.rebuy += h.rebuy || 0;
         acc.addon += h.addon || 0;
-        acc.pagou += h.pagou || 0;
-        acc.recebeu += h.recebeu || 0;
+        // financeiro: depende do backend. Tentamos os campos mais prováveis.
+        acc.pagou += (h.pagou ?? h.valor_pix ?? 0);
+        acc.recebeu += (h.recebeu ?? h.premio ?? 0);
         acc.pontos += h.pontos || 0;
         return acc;
       },
@@ -197,14 +225,15 @@ export function Jogador() {
 
   const seasonsPlayed = useMemo(() => {
     const set = new Set<string>();
-    for (const h of historico as any[]) { if (h?.ano && h?.temporada) set.add(seasonKey(h.ano, h.temporada)); }
+    for (const h of historico as any[]) {
+      if (h?.ano && h?.temporada) set.add(seasonKey(h.ano, h.temporada));
+    }
     return sortSeasonKeys(Array.from(set));
   }, [historico]);
 
   const last2Seasons = useMemo(() => seasonsPlayed.slice(-2), [seasonsPlayed]);
   const lastSeasonsForChart = useMemo(() => seasonsPlayed.slice(-6), [seasonsPlayed]);
 
-  // Gráfico: eficiência + posição final
   const [chartRows, setChartRows] = useState<Array<{ key: string; label: string; eficiencia: number; pos: number | null }>>([]);
 
   useEffect(() => {
@@ -248,8 +277,8 @@ export function Jogador() {
 
   const chart = useMemo(() => {
     if (!chartRows.length) return null;
-
     const maxE = Math.max(...chartRows.map(r => r.eficiencia), 0.0001);
+
     const w = 720;
     const h = 220;
     const padX = 44;
@@ -265,7 +294,6 @@ export function Jogador() {
     return { w, h, pts, poly };
   }, [chartRows]);
 
-  // Rodada a rodada (últimas 2 temporadas)
   const lastRounds = useMemo(() => {
     const keys = new Set(last2Seasons);
     return (historico as any[])
@@ -276,8 +304,7 @@ export function Jogador() {
   if (loading) return <div className="card">Carregando…</div>;
   if (error) return <div className="card"><b>Erro:</b> {error}</div>;
 
-  // ✅ Agora consideramos "encontrado" se houver histórico OU nome no payload
-  const hasPlayer = Boolean(id) && (Boolean(data?.jogador) || Boolean(data?.nome) || historico.length > 0);
+  const hasPlayer = Boolean(id) && (historico.length > 0 || Boolean(data?.jogador?.nome));
   if (!hasPlayer) return <div className="card">Jogador não encontrado.</div>;
 
   return (
@@ -296,7 +323,8 @@ export function Jogador() {
                 <b>Participações:</b> {profile.totals.participacoes}
               </div>
               <div className="chip">
-                <b>Melhor campanha:</b> {bestCampaign && bestCampaign.ano && bestCampaign.temporada ? `${bestCampaign.ano}-${bestCampaign.temporada}` : "—"}
+                <b>Melhor campanha:</b>{" "}
+                {bestCampaign && bestCampaign.ano && bestCampaign.temporada ? `${bestCampaign.ano}-${bestCampaign.temporada}` : "—"}
               </div>
             </div>
           </div>
@@ -317,7 +345,7 @@ export function Jogador() {
               style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
               onError={(e) => {
                 const img = e.currentTarget as HTMLImageElement;
-                if (img.src.endsWith("/default.png")) return; // evita loop
+                if (img.src.endsWith("/default.png")) return;
                 img.src = fotoPadrao;
               }}
             />
@@ -365,7 +393,7 @@ export function Jogador() {
         </div>
       </div>
 
-      {/* Gráfico: evolução */}
+      {/* Gráfico */}
       <div className="card" style={{ marginTop: 12 }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div>

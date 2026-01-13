@@ -529,23 +529,25 @@ return {
           <div className="small" style={{ marginTop: 10 }}>Sem dados suficientes para o gráfico.</div>
         ) : (
           <div style={{ marginTop: 10 }}>
-            <svg width="100%" height={chart.h} viewBox={`0 0 ${chart.w} ${chart.h}`} style={{ display: "block" }}>
-              <line x1="44" y1={chart.h - 26} x2={chart.w - 44} y2={chart.h - 26} stroke="rgba(229,230,234,.25)" />
-              <line x1="44" y1="26" x2="44" y2={chart.h - 26} stroke="rgba(229,230,234,.25)" />
+            <div style={ width: "100%", overflowX: "auto", overflowY: "hidden" }>
+            <div style={ minWidth: chart.w }>	            
+			<svg width={chart.w} height={chart.h} viewBox={`0 0 ${chart.w} ${chart.h}`} style={{ display: "block" }}>
+			  <line x1="44" y1={chart.h - 26} x2={chart.w - 44} y2={chart.h - 26} stroke="rgba(229,230,234,.25)" />
+			  <line x1="44" y1="26" x2="44" y2={chart.h - 26} stroke="rgba(229,230,234,.25)" />
 
-              <polyline fill="none" stroke="#f84501" strokeWidth="3" points={chart.polyE} />
+			  <polyline fill="none" stroke="#f84501" strokeWidth="3" points={chart.polyE} />
 
-              {/* Linha da posição final (escala invertida: 1º é melhor) */}
-              <polyline fill="none" stroke="#409fc2" strokeWidth="3" points={chart.polyP} />
+			  {/* Linha da posição final (escala invertida: 1º é melhor) */}
+			  <polyline fill="none" stroke="#409fc2" strokeWidth="3" points={chart.polyP} />
 
-              {chart.ptsE.map((p) => {
-                const pPos = chart.ptsP.find((pp) => pp.r.key === p.r.key);
-                const hasPos = pPos && Number.isFinite(pPos.y);
+			  {chart.ptsE.map((p) => {
+				const pPos = chart.ptsP.find((pp) => pp.r.key === p.r.key);
+				const hasPos = pPos && Number.isFinite(pPos.y);
 
-                return (
-                  <g key={p.r.key}>
-                    {/* Eficiência */}
-                    <circle cx={p.x} cy={p.y} r="5" fill="#ffffff" stroke="#f84501" strokeWidth="3" />
+				return (
+				  <g key={p.r.key}>
+					{/* Eficiência */}
+					<circle cx={p.x} cy={p.y} r="5" fill="#ffffff" stroke="#f84501" strokeWidth="3" />
 					{/* Valor da eficiência */}
 					<text
 					  x={p.x}
@@ -557,31 +559,33 @@ return {
 					>
 					  {p.r.eficiencia.toFixed(2)}
 					</text>
-                    {/* Posição (quando existir) */}
-                    {hasPos && (
-                      <circle cx={p.x} cy={pPos!.y} r="5" fill="#ffffff" stroke="#409fc2" strokeWidth="3" />
-                    )}
+					{/* Posição (quando existir) */}
+					{hasPos && (
+					  <circle cx={p.x} cy={pPos!.y} r="5" fill="#ffffff" stroke="#409fc2" strokeWidth="3" />
+					)}
 
-                    {p.r.pos != null && hasPos && (
-                      <text
-                        x={p.x}
-                        y={pPos!.y - 10}
-                        textAnchor="middle"
-                        fontSize="12"
-                        fill="rgba(229,230,234,.95)"
-                        fontWeight="900"
-                      >
-                        {p.r.pos}º
-                      </text>
-                    )}
+					{p.r.pos != null && hasPos && (
+					  <text
+						x={p.x}
+						y={pPos!.y - 10}
+						textAnchor="middle"
+						fontSize="12"
+						fill="rgba(229,230,234,.95)"
+						fontWeight="900"
+					  >
+						{p.r.pos}º
+					  </text>
+					)}
 
-                    <text x={p.x} y={chart.h - 10} textAnchor="middle" fontSize="11" fill="rgba(229,230,234,.75)">
-                      {p.r.label}
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
+					<text x={p.x} y={chart.h - 10} textAnchor="middle" fontSize="11" fill="rgba(229,230,234,.75)">
+					  {p.r.label}
+					</text>
+				  </g>
+				);
+			  })}
+			</svg>
+			</div>
+		  	</div>
           </div>
         )}
       </div>

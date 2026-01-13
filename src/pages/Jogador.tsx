@@ -599,8 +599,8 @@ return {
                 <div style={{ fontWeight: 900, fontSize: 18 }}>{rc.title}</div>
                 <div className="chip">
                   {rc.isCurrent
-                    ? `<b>Colocação atual<b>: ${rc.lastPos ? rc.lastPos + "º" : "—"}`
-                    : `<b>Colocação final<b>: ${rc.lastPos ? rc.lastPos + "º" : "—"}`}
+                    ? `Colocação atual: ${rc.lastPos ? rc.lastPos + "º" : "—"}`
+                    : `Colocação final: ${rc.lastPos ? rc.lastPos + "º" : "—"}`}
                 </div>
               </div>
             <div className="small">Eixo X: número da rodada. Linha: pontos acumulados. Label: &lt;pontos acumulados&gt;pts - &lt;posição no ranking&gt;.</div>

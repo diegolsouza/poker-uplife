@@ -347,13 +347,14 @@ setSeasonHists(map);
   // 4) Gráficos "Rodada a Rodada" (temporada atual e anterior)
   const roundCharts = useMemo(() => {
     const pad = 28;
-    const w = 900;
     const h = 260;
 
     return last2.map((k) => {
       const hist = (seasonHists[k] ?? [])
         .slice()
         .sort((a: any, b: any) => String(a.id_rodada ?? "").localeCompare(String(b.id_rodada ?? "")));
+
+      const w = Math.max(560, hist.length * 90 + 120);
 
       const values = hist.map((x: any) => Number(x.pontos_acumulados ?? x.pontos_rodada ?? x.pontos ?? 0));
       const maxVal = Math.max(1, ...values);
@@ -363,7 +364,7 @@ setSeasonHists(map);
         const rodada = rodadaFull.includes("-") ? rodadaFull.split("-").pop() : rodadaFull;
         const xPos =
           hist.length <= 1
-            ? w / 2
+            ? pad
             : pad + (i * (w - pad * 2)) / (hist.length - 1);
 
         const val = Number(x.pontos_acumulados ?? x.pontos_rodada ?? x.pontos ?? 0);
@@ -372,7 +373,15 @@ setSeasonHists(map);
         const col = String(x.posicao_ranking ?? "").trim();
         const colTxt = col ? `${col}º` : "—";
 
-        return {
+        
+      const lastPos = (() => {
+        if (!hist.length) return null;
+        const v = String((hist[hist.length - 1] as any).posicao_ranking ?? "").trim();
+        const n = v ? Number(v) : NaN;
+        return Number.isFinite(n) ? n : null;
+      })();
+      const isCurrent = k === last2[0];
+return {
           x: xPos,
           y: yPos,
           rodada: String(rodada ?? "").padStart(2, "0"),
@@ -384,6 +393,8 @@ setSeasonHists(map);
 
       return {
         key: k,
+        isCurrent,
+        lastPos,
         title: (() => { const [ay, at] = k.split('-'); return `Temporada ${ay}-${normalizeTemporada(at)}`; })(),
         w,
         h,
@@ -479,28 +490,29 @@ setSeasonHists(map);
           <div className="small">Somando todas as temporadas</div>
         </div>
       </div>
-{/* Bloco 3: financeiro (ALL/ALL) 
-      <div className="row" style={{ marginTop: 12 }}>
-        <div className="card" style={{ flex: "1 1 220px" }}>
-          <div className="small">Total pago</div>
-          <div className="kpi">{formatMoneyBRL(totalPago)}</div>
-          <div className="small">Buy-in + rebuys/add-ons + rateios</div>
-        </div>
-        <div className="card" style={{ flex: "1 1 220px" }}>
-          <div className="small">Total recebido</div>
-          <div className="kpi">{formatMoneyBRL(totalRecebido)}</div>
-          <div className="small">Premiações</div>
-        </div>
-        <div className="card" style={{ flex: "1 1 220px" }}>
-          <div className="small">Saldo total</div>
-          <div className={"kpi " + (saldo >= 0 ? "moneyPos" : "moneyNeg")}>
-            {formatMoneyBRL(saldo)}
+{/* Bloco 3: financeiro (ALL/ALL) */}
+      {false && (
+        <div className="row" style={{ marginTop: 12 }}>
+          <div className="card" style={{ flex: "1 1 220px" }}>
+            <div className="small">Total pago</div>
+            <div className="kpi">{formatMoneyBRL(totalPago)}</div>
+            <div className="small">Buy-in + rebuys/add-ons + rateios</div>
           </div>
-          <div className="small">Recebeu − Pagou</div>
+          <div className="card" style={{ flex: "1 1 220px" }}>
+            <div className="small">Total recebido</div>
+            <div className="kpi">{formatMoneyBRL(totalRecebido)}</div>
+            <div className="small">Premiações</div>
+          </div>
+          <div className="card" style={{ flex: "1 1 220px" }}>
+            <div className="small">Saldo total</div>
+            <div className={"kpi " + (saldo >= 0 ? "moneyPos" : "moneyNeg")}>
+              {formatMoneyBRL(saldo)}
+            </div>
+            <div className="small">Recebeu − Pagou</div>
+          </div>
         </div>
-      </div>
-*/}
-      {/* Gráfico */}
+      )}
+{/* Gráfico */}
       <div className="card" style={{ marginTop: 12 }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div>
@@ -518,8 +530,8 @@ setSeasonHists(map);
         {!chart ? (
           <div className="small" style={{ marginTop: 10 }}>Sem dados suficientes para o gráfico.</div>
         ) : (
-          <div style={{ marginTop: 10, overflowX: "auto" }}>
-            <svg width={chart.w} height={chart.h} viewBox={`0 0 ${chart.w} ${chart.h}`} style={{ display: "block" }}>
+          <div style={{ marginTop: 10 }}>
+            <svg width="100%" height={chart.h} viewBox={`0 0 ${chart.w} ${chart.h}`} style={{ display: "block" }}>
               <line x1="44" y1={chart.h - 26} x2={chart.w - 44} y2={chart.h - 26} stroke="rgba(229,230,234,.25)" />
               <line x1="44" y1="26" x2="44" y2={chart.h - 26} stroke="rgba(229,230,234,.25)" />
 
@@ -585,13 +597,20 @@ setSeasonHists(map);
       ) : (
         roundCharts.map((rc) => (
           <div key={rc.key} className="card" style={{ marginTop: 12 }}>
-            <div style={{ fontWeight: 900, fontSize: 18 }}>{rc.title}</div>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
+                <div style={{ fontWeight: 900, fontSize: 18 }}>{rc.title}</div>
+                <div className="small" style={{ fontWeight: 900, opacity: 0.95 }}>
+                  {rc.isCurrent
+                    ? `Colocação atual: ${rc.lastPos ? rc.lastPos + "º" : "—"}`
+                    : `Colocação final: ${rc.lastPos ? rc.lastPos + "º" : "—"}`}
+                </div>
+              </div>
             <div className="small">Eixo X: número da rodada. Linha: pontos acumulados. Label: &lt;pontos acumulados&gt;pts - &lt;posição no ranking&gt;.</div>
 
             {!rc.pts.length ? (
 				<div className="small" style={{ marginTop: 10 }}>Sem dados nesta temporada.</div>
             ) : (
-              <div style={{ marginTop: 10, overflowX: "auto" }}>
+              <div style={{ marginTop: 10 }}>
                 <svg viewBox={`0 0 ${rc.w} ${rc.h}`} width={rc.w} height={260} style={{ display: "block" }} role="img" aria-label={rc.title}>
                   {/* eixos */}
                   <line x1={rc.pad} y1={rc.h - rc.pad} x2={rc.w - rc.pad} y2={rc.h - rc.pad} stroke="rgba(229,230,234,.35)" />
@@ -626,4 +645,3 @@ setSeasonHists(map);
     </div>
   );
 }
-

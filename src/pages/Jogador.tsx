@@ -576,7 +576,7 @@ setSeasonHists(map);
         roundCharts.map((rc) => (
           <div key={rc.key} className="card" style={{ marginTop: 12 }}>
             <div style={{ fontWeight: 900, fontSize: 18 }}>{rc.title}</div>
-            <div className="small">Eixo X: número da rodada. Linha: pontos acumulados. Label: <pontos acumulados>pts - <posição no ranking>.</div>
+            <div className="small">Eixo X: número da rodada. Linha: pontos acumulados. Label: pontos acumulados - posição no ranking.</div>
 
             {!rc.pts.length ? (
 				<div className="small" style={{ marginTop: 10 }}>Sem dados nesta temporada.</div>

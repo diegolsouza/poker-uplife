@@ -640,9 +640,9 @@ return {
                 </svg>
 				  
               </div>
-            )}
+            ))
           </div>
-        ))
+        )}
       )}
 
       <div className="small" style={{ marginTop: 10, opacity: 0.85 }}>

@@ -345,7 +345,7 @@ setSeasonHists(map);
         .slice()
         .sort((a: any, b: any) => String(a.id_rodada ?? "").localeCompare(String(b.id_rodada ?? "")));
 
-      const values = hist.map((x: any) => Number(x.pontos_rodada ?? x.pontos ?? 0));
+      const values = hist.map((x: any) => Number(x.pontos_acumulados ?? x.pontos_rodada ?? x.pontos ?? 0));
       const maxVal = Math.max(1, ...values);
 
       const pts = hist.map((x: any, i: number) => {
@@ -356,10 +356,10 @@ setSeasonHists(map);
             ? w / 2
             : pad + (i * (w - pad * 2)) / (hist.length - 1);
 
-        const val = Number(x.pontos_rodada ?? x.pontos ?? 0);
+        const val = Number(x.pontos_acumulados ?? x.pontos_rodada ?? x.pontos ?? 0);
         const yPos = h - pad - (val / maxVal) * (h - pad * 2);
 
-        const col = String(x.colocacao ?? "").trim();
+        const col = String(x.posicao_ranking ?? "").trim();
         const colTxt = col ? `${col}º` : "—";
 
         return {
@@ -576,12 +576,12 @@ setSeasonHists(map);
         roundCharts.map((rc) => (
           <div key={rc.key} className="card" style={{ marginTop: 12 }}>
             <div style={{ fontWeight: 900, fontSize: 18 }}>{rc.title}</div>
-            <div className="small">Eixo X: número da rodada. Eixo Y: pontos (com label também mostrando a colocação).</div>
+            <div className="small">Eixo X: número da rodada. Linha: pontos acumulados. Label: <pontos acumulados>pts - <posição no ranking>.</div>
 
             {!rc.pts.length ? (
 				<div className="small" style={{ marginTop: 10 }}>Sem dados nesta temporada.</div>
             ) : (
-              <div style={{ marginTop: 10 }}>
+              <div style={{ marginTop: 10, overflowX: "auto" }}>
                 <svg viewBox={`0 0 ${rc.w} ${rc.h}`} width="100%" height={260} role="img" aria-label={rc.title}>
                   {/* eixos */}
                   <line x1={rc.pad} y1={rc.h - rc.pad} x2={rc.w - rc.pad} y2={rc.h - rc.pad} stroke="rgba(229,230,234,.35)" />

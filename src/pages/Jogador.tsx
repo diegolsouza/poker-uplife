@@ -597,10 +597,10 @@ return {
           <div key={rc.key} className="card" style={{ marginTop: 12 }}>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
                 <div style={{ fontWeight: 900, fontSize: 18 }}>{rc.title}</div>
-                <div className="small" style={{ fontWeight: 900, opacity: 0.95 }}>
+                <div className="chip">
                   {rc.isCurrent
-                    ? `Colocação atual: ${rc.lastPos ? rc.lastPos + "º" : "—"}`
-                    : `Colocação final: ${rc.lastPos ? rc.lastPos + "º" : "—"}`}
+                    ? `<b>Colocação atual<b>: ${rc.lastPos ? rc.lastPos + "º" : "—"}`
+                    : `<b>Colocação final<b>: ${rc.lastPos ? rc.lastPos + "º" : "—"}`}
                 </div>
               </div>
             <div className="small">Eixo X: número da rodada. Linha: pontos acumulados. Label: &lt;pontos acumulados&gt;pts - &lt;posição no ranking&gt;.</div>

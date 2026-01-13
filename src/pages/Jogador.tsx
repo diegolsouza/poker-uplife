@@ -530,7 +530,7 @@ return {
         ) : (
           <div style={{ marginTop: 10 }}>
             <div style={{ width: "100%", overflowX: "auto", overflowY: "hidden" }}>
-            <div style={{ minWidth: chart.w }}>
+            <div style={{ minWidth: chart.w, width: "100%" }}>
               <svg width={chart.w} height={chart.h} viewBox={`0 0 ${chart.w} ${chart.h}`} style={{ display: "block" }}>
               <line x1="44" y1={chart.h - 26} x2={chart.w - 44} y2={chart.h - 26} stroke="rgba(229,230,234,.25)" />
               <line x1="44" y1="26" x2="44" y2={chart.h - 26} stroke="rgba(229,230,234,.25)" />
@@ -599,14 +599,17 @@ return {
       ) : (
         roundCharts.map((rc) => (
           <div key={rc.key} className="card" style={{ marginTop: 12 }}>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
-                <div style={{ fontWeight: 900, fontSize: 18 }}>{rc.title}</div>
-                <div className="small" style={{ fontWeight: 900, opacity: 0.95 }}>
-                  {rc.isCurrent
-                    ? `Colocação atual: ${rc.lastPos ? rc.lastPos + "º" : "—"}`
-                    : `Colocação final: ${rc.lastPos ? rc.lastPos + "º" : "—"}`}
-                </div>
-              </div>
+            <div
+			  style={{
+			    fontWeight: 800,
+			    opacity: 0.9,
+			    whiteSpace: "nowrap",
+			  }}
+			>
+			  {rc.isCurrent
+			    ? `Colocação atual: ${rc.lastPos ? rc.lastPos + "º" : "—"}`
+			    : `Colocação final: ${rc.lastPos ? rc.lastPos + "º" : "—"}`}
+			</div>
             <div className="small">Eixo X: número da rodada. Linha: pontos acumulados. Label: &lt;pontos acumulados&gt;pts - &lt;posição no ranking&gt;.</div>
 
             {!rc.pts.length ? (

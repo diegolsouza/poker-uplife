@@ -358,7 +358,13 @@ setSeasonHists(map);
 
       const values = hist.map((x: any) => Number(x.pontos_acumulados ?? x.pontos_rodada ?? x.pontos ?? 0));
       const maxVal = Math.max(1, ...values);
-
+      const isCurrent = k === last2[0];  
+      const lastPos = (() => {
+        if (!hist.length) return null;
+        const v = String((hist[hist.length - 1] as any).posicao_ranking ?? "").trim();
+        const n = v ? Number(v) : NaN;
+        return Number.isFinite(n) ? n : null;
+      })();
       const pts = hist.map((x: any, i: number) => {
         const rodadaFull = String(x.rodada ?? x.id_rodada ?? "");
         const rodada = rodadaFull.includes("-") ? rodadaFull.split("-").pop() : rodadaFull;
@@ -372,15 +378,7 @@ setSeasonHists(map);
 
         const col = String(x.posicao_ranking ?? "").trim();
         const colTxt = col ? `${col}º` : "—";
-
-        
-      const lastPos = (() => {
-        if (!hist.length) return null;
-        const v = String((hist[hist.length - 1] as any).posicao_ranking ?? "").trim();
-        const n = v ? Number(v) : NaN;
-        return Number.isFinite(n) ? n : null;
-      })();
-      const isCurrent = k === last2[0];
+      
 return {
           x: xPos,
           y: yPos,

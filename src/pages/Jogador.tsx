@@ -92,8 +92,8 @@ export function Jogador() {
   const [geralPos, setGeralPos] = useState<number | null>(null);
   const [geralPontos, setGeralPontos] = useState<number>(0);
 
-  // histórico rodada-a-rodada das últimas 2 temporadas (api_public_jogador_season)
-  const [lastRounds, setLastRounds] = useState<any[]>([]);
+  // histórico das últimas 2 temporadas (api_public_jogador_season)
+  const [seasonHists, setSeasonHists] = useState<Record<string, any[]>>({});
   const [roundsLoading, setRoundsLoading] = useState(false);
 
   // 1) Carrega o "resumo geral" (todos os anos/temporadas) – rápido
@@ -229,7 +229,7 @@ export function Jogador() {
   useEffect(() => {
     if (!id) return;
     if (!last2.length) {
-      setLastRounds([]);
+      setSeasonHists({});
       return;
     }
 
@@ -237,23 +237,24 @@ export function Jogador() {
       try {
         setRoundsLoading(true);
 
-        const calls = last2.map(async (k) => {
-          const [ano, temporada] = k.split("-");
-          const r = await getJogador(ano, temporada, id); // season => api_public_jogador_season (inclui historico e financeiro do período)
-          const payload = (r && (r.data ?? r)) ?? null;
-          const hist = (payload?.historico ?? []) as any[];
-          return hist.map(x => ({ ...x, ano, temporada }));
-        });
+        const parts = await Promise.all(
+  last2.map(async (k) => {
+    const [ano, temporada] = k.split("-");
+    const r = await getJogador(ano, temporada, id); // api_public_jogador_season (inclui historico e financeiro do período)
+    const payload = (r && (r.data ?? r)) ?? null;
+    const hist = (payload?.historico ?? []) as any[];
+    return {
+      key: k,
+      hist: hist.map((x) => ({ ...x, ano, temporada })),
+    };
+  })
+);
 
-        const parts = await Promise.all(calls);
-        const merged = parts.flat();
-
-        // ordena (mais recente primeiro)
-        merged.sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
-
-        setLastRounds(merged);
+const map: Record<string, any[]> = {};
+parts.forEach((p) => (map[p.key] = p.hist));
+setSeasonHists(map);
       } catch {
-        setLastRounds([]);
+        setSeasonHists({});
       } finally {
         setRoundsLoading(false);
       }
@@ -334,6 +335,55 @@ export function Jogador() {
     return { w, h, ptsE, ptsP, polyE, polyP, maxPos };
   }, [chartRows]);
 
+  // 4) Gráficos "Rodada a Rodada" (temporada atual e anterior)
+  const roundCharts = useMemo(() => {
+    const pad = 28;
+    const w = 900;
+    const h = 260;
+
+    return last2.map((k) => {
+      const hist = (seasonHists[k] ?? [])
+        .slice()
+        .sort((a: any, b: any) => String(a.id_rodada ?? "").localeCompare(String(b.id_rodada ?? "")));
+
+      const values = hist.map((x: any) => Number(x.pontos_rodada ?? x.pontos ?? 0));
+      const maxVal = Math.max(1, ...values);
+
+      const pts = hist.map((x: any, i: number) => {
+        const rodadaFull = String(x.rodada ?? x.id_rodada ?? "");
+        const rodada = rodadaFull.includes("-") ? rodadaFull.split("-").pop() : rodadaFull;
+        const xPos =
+          hist.length <= 1
+            ? w / 2
+            : pad + (i * (w - pad * 2)) / (hist.length - 1);
+
+        const val = Number(x.pontos_rodada ?? x.pontos ?? 0);
+        const yPos = h - pad - (val / maxVal) * (h - pad * 2);
+
+        const col = String(x.colocacao ?? "").trim();
+        const colTxt = col ? `${col}º` : "—";
+
+        return {
+          x: xPos,
+          y: yPos,
+          rodada: String(rodada ?? "").padStart(2, "0"),
+          label: `${val}pts - ${colTxt}`,
+        };
+      });
+
+      const poly = pts.map((p) => `${p.x},${p.y}`).join(" ");
+
+      return {
+        key: k,
+        title: `Rodada a Rodada - Temporada ${k}`,
+        w,
+        h,
+        pad,
+        pts,
+        poly,
+      };
+    });
+  }, [last2, seasonHists]);
   if (loading) return <div className="card">Carregando…</div>;
   if (error) return <div className="card"><b>Erro:</b> {error}</div>;
   if (!allData?.jogador) return <div className="card">Jogador não encontrado.</div>;
@@ -348,7 +398,7 @@ export function Jogador() {
 
             <div style={{ marginTop: 10, display: "flex", gap: 12, flexWrap: "wrap" }}>
               <div className="chip">
-                <b>Joga desde:</b> {formatDateBR(allData?.jogador?.joga_desde)}
+                <b>Joga desde:</b> {formatDateBR(jogaDesde)}
               </div>
               <div className="chip">
                 <b>Participações:</b> {participacoes}
@@ -517,49 +567,49 @@ export function Jogador() {
         )}
       </div>
 
-      {/* Rodada a rodada */}
-      <div className="card" style={{ marginTop: 12 }}>
-        <div style={{ fontWeight: 900, fontSize: 18 }}>Rodada a rodada (últimas 2 temporadas)</div>
-        <div className="small">Mostra: rodada, colocação, pontos e rebuys.</div>
-
-        {roundsLoading ? (
+     {/* Rodada a rodada (gráficos) */}
+      {roundsLoading ? (
+        <div className="card" style={{ marginTop: 12 }}>
+          <div style={{ fontWeight: 900, fontSize: 18 }}>Rodada a Rodada</div>
           <div className="small" style={{ marginTop: 10 }}>Carregando rodadas…</div>
-        ) : (
-          <div style={{ marginTop: 10, overflowX: "auto" }}>
-            <table style={{ minWidth: 760 }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: "left" }}>Rodada</th>
-                  <th>Col.</th>
-                  <th>Pontos</th>
-                  <th>Rebuy</th>
-                  <th>Add-on</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lastRounds.map((h: any) => (
-                  <tr key={h.id_rodada ?? `${h.ano}-${h.temporada}-${h.rodada}`}>
-                    <td style={{ textAlign: "left" }}>
-                      {h.ano}-{h.temporada}-{h.rodada}
-                    </td>
-                    <td style={{ textAlign: "center" }}>{h.colocacao}</td>
-                    <td style={{ textAlign: "center" }}><b>{h.pontos_rodada ?? h.pontos}</b></td>
-                    <td style={{ textAlign: "center" }}>{h.rebuy ?? 0}</td>
-                    <td style={{ textAlign: "center" }}>{h.addon ?? 0}</td>
-                  </tr>
-                ))}
-                {!lastRounds.length && (
-                  <tr>
-                    <td colSpan={5} className="small" style={{ padding: 12, textAlign: "center" }}>
-                      Sem dados nas últimas 2 temporadas.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+        </div>
+      ) : (
+        roundCharts.map((rc) => (
+          <div key={rc.key} className="card" style={{ marginTop: 12 }}>
+            <div style={{ fontWeight: 900, fontSize: 18 }}>{rc.title}</div>
+            <div className="small">Eixo X: número da rodada. Eixo Y: pontos (com label também mostrando a colocação).</div>
+
+            {!rc.pts.length ? (
+				<div className="small" style={{ marginTop: 10 }}>Sem dados nesta temporada.</div>
+            ) : (
+              <div style={{ marginTop: 10 }}>
+                <svg viewBox={`0 0 ${rc.w} ${rc.h}`} width="100%" height={260} role="img" aria-label={rc.title}>
+                  {/* eixos */}
+                  <line x1={rc.pad} y1={rc.h - rc.pad} x2={rc.w - rc.pad} y2={rc.h - rc.pad} stroke="rgba(229,230,234,.35)" />
+                  <line x1={rc.pad} y1={rc.pad} x2={rc.pad} y2={rc.h - rc.pad} stroke="rgba(229,230,234,.35)" />
+
+                  {/* linha */}
+                  <polyline fill="none" stroke="#f84501" strokeWidth="3" points={rc.poly} />
+
+                  {/* pontos + labels */}
+                  {rc.pts.map((p, idx) => (
+                    <g key={idx}>
+                      <circle cx={p.x} cy={p.y} r="5" fill="#f84501" />
+                      <text x={p.x} y={p.y - 10} textAnchor="middle" fontSize="11" fill="rgba(229,230,234,.9)">
+                        {p.label}
+                      </text>
+                      <text x={p.x} y={rc.h - 10} textAnchor="middle" fontSize="11" fill="rgba(229,230,234,.75)">
+                        {p.rodada}
+                      </text>
+                    </g>
+                  ))}
+                </svg>
+				  
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        ))
+      )}
 
       <div className="small" style={{ marginTop: 10, opacity: 0.85 }}>
         Se quiser remover ou substituir sua foto, entre em contato.

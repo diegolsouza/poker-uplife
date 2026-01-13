@@ -36,6 +36,15 @@ function parseSeason(temporada: string) {
   return m ? Number(m[1]) : 0;
 }
 
+function normalizeTemporada(t: string) {
+  const s = String(t || "").trim();
+  if (!s) return s;
+  // Se vier "1" ao invés de "T1", normaliza para "T1"
+  if (/^\d+$/.test(s)) return `T${s}`;
+  if (/^t\d+$/i.test(s)) return `T${s.replace(/\D/g, "")}`;
+  return s;
+}
+
 function sortSeasonsDesc(keys: string[]) {
   return [...keys].sort((a, b) => {
     const [ay, at] = a.split("-");
@@ -238,7 +247,8 @@ export function Jogador() {
 
         const parts = await Promise.all(
   last2.map(async (k) => {
-    const [ano, temporada] = k.split("-");
+   	const [ano, temporadaRaw] = k.split("-");
+    const temporada = normalizeTemporada(temporadaRaw);
     const r = await getJogador(ano, temporada, id); // api_public_jogador_season (inclui historico e financeiro do período)
     const payload = (r && (r.data ?? r)) ?? null;
     const hist = (payload?.historico ?? []) as any[];
@@ -374,7 +384,7 @@ setSeasonHists(map);
 
       return {
         key: k,
-        title: `Rodada a Rodada - Temporada ${k}`,
+        title: (() => { const [ay, at] = k.split('-'); return `Temporada ${ay}-${normalizeTemporada(at)}`; })(),
         w,
         h,
         pad,
@@ -576,13 +586,13 @@ setSeasonHists(map);
         roundCharts.map((rc) => (
           <div key={rc.key} className="card" style={{ marginTop: 12 }}>
             <div style={{ fontWeight: 900, fontSize: 18 }}>{rc.title}</div>
-            <div className="small">Eixo X: número da rodada. Linha: pontos acumulados. Label: pontos acumulados - posição no ranking.</div>
+            <div className="small">Eixo X: número da rodada. Linha: pontos acumulados. Label: &lt;pontos acumulados&gt;pts - &lt;posição no ranking&gt;.</div>
 
             {!rc.pts.length ? (
 				<div className="small" style={{ marginTop: 10 }}>Sem dados nesta temporada.</div>
             ) : (
               <div style={{ marginTop: 10, overflowX: "auto" }}>
-                <svg viewBox={`0 0 ${rc.w} ${rc.h}`} width="100%" height={260} role="img" aria-label={rc.title}>
+                <svg viewBox={`0 0 ${rc.w} ${rc.h}`} width={rc.w} height={260} style={{ display: "block" }} role="img" aria-label={rc.title}>
                   {/* eixos */}
                   <line x1={rc.pad} y1={rc.h - rc.pad} x2={rc.w - rc.pad} y2={rc.h - rc.pad} stroke="rgba(229,230,234,.35)" />
                   <line x1={rc.pad} y1={rc.pad} x2={rc.pad} y2={rc.h - rc.pad} stroke="rgba(229,230,234,.35)" />

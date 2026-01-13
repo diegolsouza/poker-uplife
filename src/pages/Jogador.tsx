@@ -164,9 +164,8 @@ export function Jogador() {
   // calculamos "joga desde" pegando a menor data nas duas últimas temporadas carregadas;
   // e, se não houver, mostramos "—".
   const jogaDesde = useMemo(() => {
-    const dates = (lastRounds || []).map(r => r.data).filter(Boolean).sort();
-    return dates.length ? dates[0] : null;
-  }, [lastRounds]);
+    return allData?.jogador?.joga_desde ?? null;
+  }, [allData]);
 
   // KPIs do topo (ALL/ALL): participações totais, etc.
   const participacoes = Number(allData?.jogador?.participacoes ?? totalGeral?.participacoes ?? 0);

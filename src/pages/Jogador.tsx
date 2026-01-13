@@ -608,8 +608,16 @@ return {
             {!rc.pts.length ? (
 				<div className="small" style={{ marginTop: 10 }}>Sem dados nesta temporada.</div>
             ) : (
-              <div style={{ marginTop: 10 }}>
-                <svg viewBox={`0 0 ${rc.w} ${rc.h}`} width={rc.w} height={260} style={{ display: "block" }} role="img" aria-label={rc.title}>
+              <div style={{ marginTop: 10, width: "100%", overflowX: "auto", overflowY: "hidden" }}>
+				  <div style={{ minWidth: rc.w }}>
+				    <svg
+				      viewBox={`0 0 ${rc.w} ${rc.h}`}
+				      width={rc.w}
+				      height={260}
+				      style={{ display: "block" }}
+				      role="img"
+				      aria-label={rc.title}
+				    >
                   {/* eixos */}
                   <line x1={rc.pad} y1={rc.h - rc.pad} x2={rc.w - rc.pad} y2={rc.h - rc.pad} stroke="rgba(229,230,234,.35)" />
                   <line x1={rc.pad} y1={rc.pad} x2={rc.pad} y2={rc.h - rc.pad} stroke="rgba(229,230,234,.35)" />

@@ -531,7 +531,14 @@ return {
           <div style={{ marginTop: 10 }}>
             <div style={{ width: "100%", overflowX: "auto", overflowY: "hidden" }}>
             <div style={{ minWidth: chart.w, width: "100%" }}>
-              <svg width={chart.w} height={chart.h} viewBox={`0 0 ${chart.w} ${chart.h}`} style={{ display: "block" }}>
+				{/*<svg width={chart.w} height={chart.h} viewBox={`0 0 ${chart.w} ${chart.h}`} style={{ display: "block" }}>*/}
+				<svg
+				  viewBox={`0 0 ${chart.w} ${chart.h}`}
+				  width="100%"
+				  height={chart.h}
+				  style={{ display: "block", minWidth: chart.w }}
+				  preserveAspectRatio="xMinYMin meet"
+				>
               <line x1="44" y1={chart.h - 26} x2={chart.w - 44} y2={chart.h - 26} stroke="rgba(229,230,234,.25)" />
               <line x1="44" y1="26" x2="44" y2={chart.h - 26} stroke="rgba(229,230,234,.25)" />
 

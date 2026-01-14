@@ -606,16 +606,20 @@ return {
       ) : (
         roundCharts.map((rc) => (
           <div key={rc.key} className="card" style={{ marginTop: 12 }}>
-            <div
-			  style={{
-			    fontWeight: 800,
-			    opacity: 0.9,
-			    whiteSpace: "nowrap",
-			  }}
-			>
-			  {rc.isCurrent
-			    ? `Colocação atual: ${rc.lastPos ? rc.lastPos + "º" : "—"}`
-			    : `Colocação final: ${rc.lastPos ? rc.lastPos + "º" : "—"}`}
+			<div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
+  				<div style={{ fontWeight: 900, fontSize: 18 }}>{rc.title}</div>
+			  	<div
+				  style={{
+				    fontWeight: 800,
+				    opacity: 0.9,
+				    whiteSpace: "nowrap",
+					textAlign: "right",
+				  }}
+				>
+				  {rc.isCurrent
+				    ? `Colocação atual: ${rc.lastPos ? rc.lastPos + "º" : "—"}`
+				    : `Colocação final: ${rc.lastPos ? rc.lastPos + "º" : "—"}`}
+				</div>
 			</div>
             <div className="small">Eixo X: número da rodada. Linha: pontos acumulados. Label: &lt;pontos acumulados&gt;pts - &lt;posição no ranking&gt;.</div>
 

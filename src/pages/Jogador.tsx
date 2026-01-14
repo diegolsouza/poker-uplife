@@ -100,6 +100,7 @@ export function Jogador() {
 
   const [geralPos, setGeralPos] = useState<number | null>(null);
   const [geralPontos, setGeralPontos] = useState<number>(0);
+  const [desempenhoPos, setDesempenhoPos] = useState<number | null>(null);
 
   // histórico das últimas 2 temporadas (api_public_jogador_season)
   const [seasonHists, setSeasonHists] = useState<Record<string, any[]>>({});
@@ -133,6 +134,8 @@ export function Jogador() {
       try {
         const rows = await getRankingGeral();
         const ranks = computeDisplayRanks(rows);
+
+        // posição do jogador no ranking geral (pontos/critério padrão)
         const idx = rows.findIndex((r: any) => r.id_jogador === id);
         if (idx >= 0) {
           setGeralPos(ranks[idx]);
@@ -141,9 +144,43 @@ export function Jogador() {
           setGeralPos(null);
           setGeralPontos(0);
         }
+
+        // ranking por "Desempenho" = pontos ÷ participações (maior melhor)
+        const perfRows = rows
+          .map((r: any) => {
+            const pts = Number(r?.pontos ?? 0);
+            const part = Number(r?.participacoes ?? 0);
+            const perf = part > 0 ? (pts / part) : 0;
+            return { ...r, __perf: perf, __pts: pts, __part: part };
+          })
+          .slice()
+          .sort((a: any, b: any) => {
+            // maior desempenho primeiro
+            if (b.__perf !== a.__perf) return b.__perf - a.__perf;
+            // desempates estáveis
+            if (b.__pts !== a.__pts) return b.__pts - a.__pts;
+            if (b.__part !== a.__part) return b.__part - a.__part;
+            return String(a.id_jogador).localeCompare(String(b.id_jogador));
+          });
+
+        const perfRanks: number[] = [];
+        for (let i = 0; i < perfRows.length; i++) {
+          if (
+            i > 0 &&
+            perfRows[i].__perf === perfRows[i - 1].__perf &&
+            perfRows[i].__pts === perfRows[i - 1].__pts &&
+            perfRows[i].__part === perfRows[i - 1].__part
+          ) perfRanks.push(perfRanks[i - 1]);
+          else perfRanks.push(i + 1);
+        }
+
+        const pIdx = perfRows.findIndex((r: any) => r.id_jogador === id);
+        setDesempenhoPos(pIdx >= 0 ? perfRanks[pIdx] : null);
+
       } catch {
         setGeralPos(null);
         setGeralPontos(0);
+        setDesempenhoPos(null);
       }
     })();
   }, [id]);
@@ -189,10 +226,13 @@ export function Jogador() {
   }, [resumo]);
 
   const melhoresMaos = useMemo(() => {
-    const has = resumo.some(s => s.melhor_mao != null);
-    if (!has) return 0;
-    return resumo.reduce((acc, s) => acc + Number(s.melhor_mao || 0), 0);
-  }, [resumo]);
+    const fromResumo = resumo.reduce((acc, s) => {
+      const v = (s as any).melhor_mao ?? (s as any).melhores_maos ?? (s as any).melhor_maos ?? 0;
+      return acc + Number(v || 0);
+    }, 0);
+    const fromTotal = Number((totalGeral as any)?.melhor_mao ?? (totalGeral as any)?.melhores_maos ?? 0);
+    return (fromTotal && fromTotal > 0) ? fromTotal : fromResumo;
+  }, [resumo, totalGeral]);
 
   const vitorias = useMemo(() => {
     const has = resumo.some(s => s.p1 != null);
@@ -204,10 +244,26 @@ export function Jogador() {
 
 
   const totalRebuys = useMemo(() => {
-    const has = resumo.some(s => s.rebuy_total != null);
-    if (!has) return 0;
-    return resumo.reduce((acc, s) => acc + Number(s.rebuy_total || 0), 0);
-  }, [resumo]);
+    const fromResumo = resumo.reduce((acc, s) => {
+      const v =
+        (s as any).rebuy_total ??
+        (s as any).rebuys_total ??
+        (s as any).rebuys ??
+        (s as any).rebuy ??
+        0;
+      return acc + Number(v || 0);
+    }, 0);
+
+    const fromTotal = Number(
+      (totalGeral as any)?.rebuy_total ??
+        (totalGeral as any)?.rebuys_total ??
+        (totalGeral as any)?.rebuys ??
+        (totalGeral as any)?.total_rebuys ??
+        0
+    );
+
+    return (fromTotal && fromTotal > 0) ? fromTotal : fromResumo;
+  }, [resumo, totalGeral]);
 
   const taxaPodio = participacoes ? (podios / participacoes) : 0;
 
@@ -456,13 +512,23 @@ return {
       <div className="row" style={{ marginTop: 12 }}>
         <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Ranking geral</div>
-          <div className="kpi">{geralPos != null ? `${geralPos}º` : "—"}</div>
+          <div className="kpi">
+            {geralPos != null ? `${geralPos}º` : "—"}
+            <span className="small" style={{ marginLeft: 8, fontWeight: 800, opacity: 0.9 }}>
+              ({Number(geralPontos || 0).toFixed(0)} pts)
+            </span>
+          </div>
           <div className="small">Posição no ranking geral</div>
         </div>
 		<div className="card" style={{ flex: "1 1 220px" }}>
-          <div className="small">Aproveitamento</div>
-          <div className="kpi">{aproveitamento.toFixed(2)}</div>
-          <div className="small">Pontos (geral) ÷ participações</div>
+          <div className="small">Desempenho</div>
+          <div className="kpi">
+            {aproveitamento.toFixed(2)}
+            <span className="small" style={{ marginLeft: 8, fontWeight: 800, opacity: 0.9 }}>
+              ({desempenhoPos != null ? `${desempenhoPos}º` : "—"})
+            </span>
+          </div>
+          <div className="small">Pontos (geral) ÷ participações (ranking)</div>
         </div>
         <div className="card" style={{ flex: "1 1 220px" }}>
           <div className="small">Taxa de vitória</div>
@@ -529,16 +595,7 @@ return {
           <div className="small" style={{ marginTop: 10 }}>Sem dados suficientes para o gráfico.</div>
         ) : (
           <div style={{ marginTop: 10 }}>
-            <div style={{ width: "100%", overflowX: "auto", overflowY: "hidden" }}>
-            <div style={{ minWidth: chart.w, width: "100%" }}>
-				{/*<svg width={chart.w} height={chart.h} viewBox={`0 0 ${chart.w} ${chart.h}`} style={{ display: "block" }}>*/}
-				<svg
-				  viewBox={`0 0 ${chart.w} ${chart.h}`}
-				  width="100%"
-				  height={chart.h}
-				  style={{ display: "block", minWidth: chart.w }}
-				  preserveAspectRatio="xMinYMin meet"
-				>
+            <svg width="100%" height={chart.h} viewBox={`0 0 ${chart.w} ${chart.h}`} style={{ display: "block" }}>
               <line x1="44" y1={chart.h - 26} x2={chart.w - 44} y2={chart.h - 26} stroke="rgba(229,230,234,.25)" />
               <line x1="44" y1="26" x2="44" y2={chart.h - 26} stroke="rgba(229,230,234,.25)" />
 
@@ -591,8 +648,6 @@ return {
                 );
               })}
             </svg>
-            </div>
-          </div>
           </div>
         )}
       </div>
@@ -606,21 +661,14 @@ return {
       ) : (
         roundCharts.map((rc) => (
           <div key={rc.key} className="card" style={{ marginTop: 12 }}>
-			<div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
-  				<div style={{ fontWeight: 900, fontSize: 18 }}>{rc.title}</div>
-			  	<div
-				  style={{
-				    fontWeight: 800,
-				    opacity: 0.9,
-				    whiteSpace: "nowrap",
-					textAlign: "right",
-				  }}
-				>
-				  {rc.isCurrent
-				    ? `Colocação atual: ${rc.lastPos ? rc.lastPos + "º" : "—"}`
-				    : `Colocação final: ${rc.lastPos ? rc.lastPos + "º" : "—"}`}
-				</div>
-			</div>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
+                <div style={{ fontWeight: 900, fontSize: 18 }}>{rc.title}</div>
+                <div className="small" style={{ fontWeight: 900, opacity: 0.95 }}>
+                  {rc.isCurrent
+                    ? `Colocação atual: ${rc.lastPos ? rc.lastPos + "º" : "—"}`
+                    : `Colocação final: ${rc.lastPos ? rc.lastPos + "º" : "—"}`}
+                </div>
+              </div>
             <div className="small">Eixo X: número da rodada. Linha: pontos acumulados. Label: &lt;pontos acumulados&gt;pts - &lt;posição no ranking&gt;.</div>
 
             {!rc.pts.length ? (
@@ -656,7 +704,7 @@ return {
                     </g>
                   ))}
                 </svg>
-                </div>
+				  
               </div>
             )}
           </div>

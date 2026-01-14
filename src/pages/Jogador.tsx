@@ -706,6 +706,7 @@ return {
                 </svg>
 				  
               </div>
+              </div>
             )}
           </div>
         ))
